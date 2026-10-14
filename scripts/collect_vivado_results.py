@@ -25,7 +25,8 @@ def coe_words(path):
     text = path.read_text(encoding='ascii')
     if not re.search(r'memory_initialization_radix\s*=\s*16\s*;', text, re.I):
         raise ValueError('Expected hexadecimal COE: ' + str(path))
-    vector = re.search(r'memory_initialization_vector\s*=\s*([^;]+);', text, re.I)
+    # Original course COEs omit the optional final semicolon.
+    vector = re.search(r'memory_initialization_vector\s*=\s*([^;]+)(?:;|$)', text, re.I)
     if not vector:
         raise ValueError('COE vector missing: ' + str(path))
     return [int(word, 16) for word in re.split(r'[\s,]+', vector[1].strip())]
