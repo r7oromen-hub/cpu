@@ -47,8 +47,7 @@ foreach ip_name {clk_pll inst_ram data_ram} {
     set ip [get_ips $ip_name]
     if {[get_property IS_LOCKED $ip]} { upgrade_ip $ip }
     if {$ip_name eq "clk_pll"} {
-        set input_freq [expr {$project_mode eq "remote" ? 50.0 : 100.0}]
-        set_property CONFIG.PRIM_IN_FREQ $input_freq $ip
+        lab_configure_pll $repo_dir $project_mode
     } else {
         set_property -dict [list CONFIG.Load_Init_File true CONFIG.Coe_File \
             [file join $env_dir func obj $ip_name.coe]] $ip
