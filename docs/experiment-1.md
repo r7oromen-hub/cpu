@@ -79,5 +79,17 @@ vvp -n test-results/raw/tb_sync_ram.vvp
 `scripts/create_vivado.tcl` / `scripts/build_vivado.tcl` 支持 `local` 和 `remote`。
 本地/远程各自独立项目；远程输入时钟 50 MHz、两块 RAM 使用当前镜像 COE，
 包括 remote2local 和远程顶层，仅加载远程 XDC。关闭后重新打开 `.xpr`，
-不重复 create_project。Vivado 实测结果由主代理补充；实际 FPGA 板与校内线上
-平台未在本分支的 Icarus 回归中测试。
+不重复 create_project。
+
+2026-10-14 已用 Vivado 2018.3 对 `xc7a200tfbg676-1` 完成 CPU-only 综合及
+远程顶层综合、布局布线、bitstream 生成。CPU 实际时钟 50 MHz，计时器 100 MHz；
+最终 WNS=1.706 ns、WHS=0.059 ns、WPWS=4.500 ns，全部 TNS/THS/TPWS=0，
+DRC 违规为 0。两块 RAM 生成的 MIF 与当前 ex1 COE 逐字一致。
+
+证据：[远程验收摘要](../test-results/vivado-remote/summary.json)、
+[最终时序](../test-results/vivado-remote/timing-summary.txt)、
+[DRC](../test-results/vivado-remote/drc.txt)、
+[CPU-only 综合资源](../test-results/cpu-synthesis/utilization.rpt)。
+`.xpr` 在 `build/vivado-remote/loongson.xpr`，`.bit` 在
+`build/vivado-remote/loongson.runs/impl_1/looongson_remote_top.bit`。
+这里 PASS 仅指本机实现与时序验收；实际 FPGA 上板和校内线上评测未执行。

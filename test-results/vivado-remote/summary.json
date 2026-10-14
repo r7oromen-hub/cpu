@@ -1,0 +1,59 @@
+{
+  "status": "PASS",
+  "board_test": "NOT_RUN",
+  "online_test": "NOT_RUN",
+  "wns_ns": 1.706,
+  "tns_ns": 0.0,
+  "whs_ns": 0.059,
+  "ths_ns": 0.0,
+  "wpws_ns": 4.5,
+  "tpws_ns": 0.0,
+  "input_clock_mhz": 50.0,
+  "cpu_clock_mhz": 50.0,
+  "timer_clock_mhz": 100.0,
+  "ram_images": {
+    "inst_ram": {
+      "selected_coe_sha256": "80aafbcecb9c54247a794971e9dbdf32a679689cf792dad3262b8d4f4b832e06",
+      "generated_mif_sha256": "3eded9e9c003e035a3179cf73b120e254201d8d33835baa1e11cb8102dd2d564",
+      "words": 238931
+    },
+    "data_ram": {
+      "selected_coe_sha256": "6a4e7b30fba295f550eb2ccf77c20d5a50daf365cbc8bba4d53f415915bfcb6b",
+      "generated_mif_sha256": "a7526eb0d3df4caa4df727b88811f4c45d2def048ce3895ad18f1fc50b160991",
+      "words": 1
+    }
+  },
+  "selected_images": [
+    "ex1_obj"
+  ],
+  "drc_violations": 0,
+  "bitstream": "build\\vivado-remote\\loongson.runs\\impl_1\\looongson_remote_top.bit",
+  "bitstream_bytes": 4983067,
+  "bitstream_sha256": "ca90526e00f2f633cf43d4043c978a29b40821ebff14b90fbffccc38cc7f9ecc",
+  "input_sha256": {
+    "build\\vivado-remote\\ip\\clk_pll\\clk_pll.xci": "6286a8a82b8709b91fa10fa6d57ca075d7d4db578c51f648192bce77a6bc99dc",
+    "build\\vivado-remote\\ip\\data_ram\\data_ram.xci": "95056558eedde430a4ac6c952edc2994330c22339743527a5eabe0a80b292d25",
+    "build\\vivado-remote\\ip\\inst_ram\\inst_ram.xci": "9376e8232f13ce7002eca63343637424aadae7278ab71a118653d2d19ae94095",
+    "cdp_ede_local-master\\mycpu_env\\func\\obj\\data_ram.coe": "6a4e7b30fba295f550eb2ccf77c20d5a50daf365cbc8bba4d53f415915bfcb6b",
+    "cdp_ede_local-master\\mycpu_env\\func\\obj\\inst_ram.coe": "80aafbcecb9c54247a794971e9dbdf32a679689cf792dad3262b8d4f4b832e06",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\alu.v": "9e0eb1d4ab1a86b5e1e8372ec3d56cac7198600fb281b3c7ab179cf128c34ea6",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\exe_stage.v": "fe9a11d545149ea7779e48129de9c5b108b8346603a737544a838368cdea5621",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\id_stage.v": "cee93fe2b2c99f67703d405d5f730de98a2eddbde26a6a90c6d4519f98140945",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\if_stage.v": "abd3824b0264057e9342b69bc49ab92756dca4a1d0e3266270572571048e4d35",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\mem_stage.v": "ab40cd14acb9d99349c1997fc127ec3b11c7de111cbe5064e9515018ec9b6ad8",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\mycpu_head.v": "9a3a26620d7011cfa806cf41a610bb21f9f2b046bba2c6bd274c2d251c84d424",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\mycpu_top.v": "3e91f200b2fc76ac1f8367813e8df1e6b20d4a4cf4f1a992ed557fbad705277b",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\regfile.v": "07fc0f59c7ca339519b714db79e40d6c86aee6d37414ff20c27d7e143de0ac6d",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\tools.v": "6e9203fb876250070077e5a6877d3dcb4e396d9bcee1b1f1032ee83d7ca2ac33",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\wb_stage.v": "78c76bc0764a25487b07de3b82449931a0bb89e8e076fbb7548f83d6cf48a26c",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\BRIDGE\\bridge_1x2.v": "f58a8bd9fd782d2dd6cc5ed5d9433f5173bfce4d32a4fba6f6cca468f7bc200c",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\CONFREG\\confreg.v": "638138992463c7a54cfc2eb0eb70ff1cf78a8f291751a3876411243749874884",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\soc_lite_top.v": "f152e26a8e6b1b58bc726899f2c8696bdfd4ee742dfdede8d753812e096ccb00",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\xilinx_ip\\clk_pll\\clk_pll.xci": "2b3e5f246e639900b67592333152497f7d0807337be9b560e6d5af4d28b4d052",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\xilinx_ip\\data_ram\\data_ram.xci": "5aef4d9319f69166c45f86422dee7191eaffd5c887601fa882f95f99410e9ee6",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\xilinx_ip\\inst_ram\\inst_ram.xci": "0d7df50ea66174fe64e20f7bcf93e3341c725f85f86e09870460f3d08c9949c0",
+    "remote\\loongson_remote.xdc": "9538954363f50ec556395b5ab7b4f310591b8c0cdb193add3f120b2ac13d7f77",
+    "remote\\loongson_remote_top.v": "459e92bf07ecc03be9923658eb8b0d38014c3c9218d1c1acf9e2a2103a2a9e83",
+    "remote\\remote2local.v": "17db7362eebfc0014be0514123ac106e9f8fd05e09a113d365a2d60c93957c03"
+  }
+}
