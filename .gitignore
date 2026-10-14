@@ -1,0 +1,28 @@
+# Vivado and simulation output; source .xci files remain versioned.
+**/.Xil/
+**/*.cache/
+**/*.hw/
+**/*.ip_user_files/
+**/*.runs/
+**/*.sim/
+**/project/
+**/generated/
+**/*.jou
+**/*.log
+**/*.str
+**/*.vcd
+**/*.wdb
+**/golden_trace.txt
+**/func/obj/
+**/func/obj_*/
+**/__pycache__/
+build/
+test-results/raw/
+# Unused course environments and software build trees.
+cdp_ede_local-master/mycpu_env/module_verify/
+cdp_ede_local-master/mycpu_env/soc_verify/soc_axi/
+cdp_ede_local-master/mycpu_env/soc_verify/soc_dram/
+cdp_ede_local-master/mycpu_env/soc_verify/soc_hs_bram/
+cdp_ede_local-master/mycpu_env/func/*
+!cdp_ede_local-master/mycpu_env/func/README.md
+*.pdf
