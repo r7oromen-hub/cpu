@@ -18,11 +18,11 @@ if {[file exists $project_file]} {
     source [file join $script_dir create_vivado.tcl]
 }
 set clock_changed [lab_configure_pll $repo_dir $project_mode 1]
-lab_restore_ram_images [file join $repo_dir cdp_ede_local-master mycpu_env] [file dirname $project_file]
+set ram_changed [lab_restore_ram_images [file join $repo_dir cdp_ede_local-master mycpu_env] [file dirname $project_file]]
 update_compile_order -fileset sources_1
-if {$clock_changed} {
-    # A real PLL frequency change invalidates both top-level results, but does
-    # not invalidate the inst/data RAM OOC checkpoints.
+if {$clock_changed || $ram_changed} {
+    # An actual clock/image change invalidates top-level results; each changed
+    # IP refreshes only its own OOC run, preserving unrelated checkpoints.
     reset_run impl_1
     reset_run synth_1
 }
@@ -46,6 +46,8 @@ file mkdir $report_dir
 report_timing_summary -file [file join $report_dir timing-summary.txt]
 report_utilization -file [file join $report_dir utilization.txt]
 report_drc -file [file join $report_dir drc.txt]
+lab_check_drc
+lab_check_pulse_width [file join $report_dir timing-summary.txt]
 set setup_paths [get_timing_paths -delay_type max -max_paths 1]
 set hold_paths [get_timing_paths -delay_type min -max_paths 1]
 if {[llength $setup_paths] == 0} { error "No constrained setup timing paths; inspect timing-summary.txt" }
