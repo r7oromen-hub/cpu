@@ -1,10 +1,61 @@
-"""Mock Vivado API tests for project reuse; run with python tests/test_vivado_helpers.py."""
+"""Mock Vivado API tests; requires Python tkinter plus a matching Tcl runtime.
+
+Run with an existing complete Python installation (Windows Anaconda works).
+No Tk GUI/display is needed. Missing tkinter/init.tcl is a dependency error,
+never a skipped or passing test. Search installed runtimes without installing.
+"""
 from pathlib import Path
+import os
+import shutil
+import sys
 import tempfile
-import tkinter
+try:
+    import tkinter
+except ImportError:
+    tkinter = None
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def new_tcl_interpreter():
+    if tkinter is None:
+        raise RuntimeError("Python tkinter is missing. Use an existing Windows Python with Tcl, rather than the minimal WSL Python.")
+    try:
+        return tkinter.Tcl()
+    except tkinter.TclError as original:
+        # Relocated/bundled Python can include _tkinter without init.tcl. Look
+        # only beside the current Python and installed PATH Python/Tcl tools.
+        roots = {Path(sys.prefix), Path(sys.base_prefix), Path(sys.executable).parent}
+        for command in ["python", "python3", "python.exe", "tclsh", "tclsh86"]:
+            installed = shutil.which(command)
+            if installed:
+                directory = Path(installed).parent
+                roots.update([directory, directory.parent])
+        version = str(tkinter.TclVersion)
+        previous = os.environ.get("TCL_LIBRARY")
+        checked = []
+        for root in sorted(roots):
+            for subdir in [f"tcl{version}", f"tcl/tcl{version}", f"lib/tcl{version}",
+                           f"Library/lib/tcl{version}", f"share/tcltk/tcl{version}"]:
+                candidate = root / subdir
+                if not (candidate / "init.tcl").is_file():
+                    continue
+                checked.append(str(candidate))
+                os.environ["TCL_LIBRARY"] = str(candidate)
+                try:
+                    interpreter = tkinter.Tcl()
+                    print("Using discovered Tcl runtime:", interpreter.eval("info library"))
+                    return interpreter
+                except tkinter.TclError:
+                    # Tcl itself rejects incompatible patch-level libraries.
+                    continue
+        if previous is None:
+            os.environ.pop("TCL_LIBRARY", None)
+        else:
+            os.environ["TCL_LIBRARY"] = previous
+        raise RuntimeError("No usable Tcl init.tcl. Use an existing complete Python/Tcl installation; "
+                           f"checked={checked}. Original initialization error: {original}") from original
 
 
 class VivadoHelpersTest(unittest.TestCase):
@@ -12,10 +63,10 @@ class VivadoHelpersTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="cpu-lab-vivado-")
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name)
-        self.tcl = tkinter.Tcl()
-        # Use the documented repository-root invocation. Old Windows Tcl may
-        # misdecode a Chinese absolute __file__ path, just as Vivado 2018.3 does.
-        self.tcl.call("source", "scripts/vivado_helpers.tcl")
+        self.tcl = new_tcl_interpreter()
+        # Python reads the Unicode absolute path; Tcl evaluates the source text
+        # and need not reinterpret a Chinese filename. Independent of cwd.
+        self.tcl.eval((ROOT / "scripts/vivado_helpers.tcl").read_text(encoding="utf-8"))
         self.tcl.eval("""
             set ::properties [dict create clk_pll [dict create \
                 CONFIG.PRIM_IN_FREQ 50.000 CONFIG.CLKOUT1_REQUESTED_OUT_FREQ 50.000 \
@@ -106,12 +157,31 @@ class VivadoHelpersTest(unittest.TestCase):
         with self.assertRaises(tkinter.TclError):
             self.tcl.call("lab_check_pulse_width", str(report))
 
-    def test_drc_violation_is_rejected(self):
+    def set_drc(self, check, severity):
+        self.tcl.call("dict", "set", "::properties", "violation", "CHECK", check)
+        self.tcl.call("dict", "set", "::properties", "violation", "SEVERITY", severity)
+        self.tcl.eval("set ::violations {violation}")
+
+    def test_unknown_drc_warning_is_rejected(self):
         self.tcl.call("lab_check_drc")
-        self.tcl.eval("set ::violations {NSTD-1}")
+        self.set_drc("NSTD-1", "Warning")
         with self.assertRaises(tkinter.TclError):
             self.tcl.call("lab_check_drc")
 
+    def test_only_reviewed_dsp_warning_severity_is_accepted(self):
+        for check in ["DPIP-1", "DPOP-1", "DPOP-2"]:
+            self.set_drc(check, "Warning")
+            self.tcl.call("lab_check_drc")
+            for severity in ["Error", "Critical Warning", "", "Unknown"]:
+                self.set_drc(check, severity)
+                with self.assertRaises(tkinter.TclError):
+                    self.tcl.call("lab_check_drc")
+
 
 if __name__ == "__main__":
+    try:
+        new_tcl_interpreter()
+    except RuntimeError as error:
+        print("TEST_DEPENDENCY_ERROR:", error, file=sys.stderr)
+        sys.exit(2)
     unittest.main()

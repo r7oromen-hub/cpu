@@ -112,7 +112,7 @@ RAM 镜像路径相同不代表内容相同。每次生成 RAM 后，将实际�
 种下快照并复用已有输出；缺文件、字数不完整或任何值不同都会重建，不能凭
 路径和修改时间假设镜像正确。COE radix 支持 2/10/16，并拒绝超出 32 位的值。
 
-`python tests/test_vivado_helpers.py` 的七项 mock Tcl 检查实测通过，覆盖：PLL
+`python tests/test_vivado_helpers.py` 的 mock Tcl 检查实测通过，覆盖：PLL
 不变时复用、变频仅重置 PLL、旧工程完整 MIF 种快照、同路径内容替换只重建
 受影响 RAM、不完整 MIF 拒绝存快照、WPWS/报告缺失失败、DRC 违规失败。
 Windows Tcl 的 `scan %x` 可将 ffffffff 读成负数，因此字比较使用经格式检查的
@@ -123,6 +123,45 @@ Windows Tcl 的 `scan %x` 可将 ffffffff 读成负数，因此字比较使用�
 experiment-5 工程中返回 0，inst/data 均 `RAM_REUSE_GUARD_PASS`，最终
 `VIVADO_REUSE_API_PASS`。它不是 FPGA 上板测试。
 
-构建最终通过条件还包括零 DRC 违规、global timing summary 的 WPWS>=0 且
+构建最终通过条件还包括无阻断 DRC 违规、global timing summary 的 WPWS>=0 且
 脉宽失败端点数为 0；缺失或不完整报告失败。setup/hold 的原负 slack 检查保持，
 不得仅凭 bitstream 文件存在宣称时序达标。
+
+## DSP 建议警告与 DRC 严格例外
+
+实验五真实 Fully Routed 设计出现 12 条 DSP 流水建议：DPIP-1、DPOP-1、
+DPOP-2 各 4 条，全部原始 Severity=Warning。它们建议给 DSP 输入、PREG 和
+MREG 增加内部流水级；当前乘法按实验要求采用 EXE 单周期结果，实际 25 MHz
+setup/hold 已通过，因此不为消除建议警告改变指令流水时序。
+
+Vivado 2018.3 只读 API 实测确认违规对象的 `CHECK` 分别是这三个编号，
+`SEVERITY` 都为 Warning，`IS_WAIVED=0`。`lab_check_drc` 仅接受这三个已审查
+check 且实际严重程度恰好为 Warning；未知 check、未知严重程度、Error、
+Critical Warning 均失败。检查逐条打印保留的建议及总数，完整 report 不抑制，
+不修改 SEVERITY、不加 waiver。实验五不是“零 DRC”，是 12 条明确保留的
+建议警告、零阻断违规。独立只读检查入口为 `scripts/check_vivado_drc.tcl`。
+
+新增 mock 检查同时断言三个建议性 Warning 可接受，而任意未审查 Warning
+以及同 check 升为 Error/Critical Warning/空或未知严重程度均不能通过。
+
+## Mock Tcl 测试依赖
+
+测试需要有 `tkinter/_tkinter` 的 Python 和版本匹配、包含 `init.tcl` 的 Tcl
+运行库，不需要图形窗口。WSL 精简 Python 可能没有 tkinter，某些重定位的
+bundled Python 有 `_tkinter` 却没有可用 Tcl 初始化库；这些情况以返回码 2
+明确报依赖错误，不跳过测试或标 PASS。脚本会先使用 Python 默认 Tcl，再搜索
+sys.prefix、sys.base_prefix 和 PATH 中已安装 Python/Tcl 的标准运行库位置，
+让 Tcl 本身检查兼容性，没有硬编码本机目录，也不会安装软件。
+
+本机实测成功环境为 `F:\anaconda\python.exe`，Tcl 8.6.15，运行库
+`F:\anaconda\Library\lib\tcl8.6`，无需设置 TCL_LIBRARY。从仓库目录执行：
+
+```powershell
+& 'F:/anaconda/python.exe' tests/test_vivado_helpers.py
+```
+
+当前共 8 项测试，实测全部通过。源 Tcl 由 Python 按测试文件自身的绝对位置
+读取后交给 Tcl，避免中文文件名被旧 Tcl 误解，也支持从其他当前目录调用。
+沙箱中 Python 写临时文件与原生 Tcl 读临时文件可能处于不同重定向视图；复跑
+应在宿主终端执行，代理环境必要时使用经批准的宿主执行。不能将该环境造成的
+文件不可见误认为工程保护测试通过，也不能为此跳过用例。
