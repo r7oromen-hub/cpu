@@ -12,6 +12,7 @@ if {![info exists project_mode]} {
     if {$project_mode eq ""} { set project_mode local }
 }
 if {$project_mode ni {local remote}} { error "Mode must be local or remote" }
+source [file join $repo_dir scripts vivado_helpers.tcl]
 set env_dir [file join $repo_dir cdp_ede_local-master mycpu_env]
 set soc_dir [file join $env_dir soc_verify soc_bram]
 set project_dir [file join $repo_dir build vivado-$project_mode]
@@ -51,9 +52,14 @@ foreach ip_name {clk_pll inst_ram data_ram} {
     } else {
         set_property -dict [list CONFIG.Load_Init_File true CONFIG.Coe_File \
             [file join $env_dir func obj $ip_name.coe]] $ip
+        lab_check_ram_ip $ip
     }
+    # add_files/upgrade_ip may register the old relative COE even after the IP
+    # configuration points to the new image. Drop only nonexistent records.
+    lab_remove_missing_coe
     generate_target all $ip
 }
+lab_remove_missing_coe
 if {$project_mode eq "remote"} {
     add_files -norecurse [list [file join $repo_dir remote remote2local.v] \
         [file join $repo_dir remote loongson_remote_top.v]]

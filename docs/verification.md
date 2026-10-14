@@ -72,3 +72,22 @@ junction 指向中文目录的情况。可在调用前将 `CPU_LAB_ROOT` 设置�
 的绝对 ASCII junction 路径；脚本会按原样使用该路径，不再 normalize。
 例如主代理统一验证创建的临时 alias，设置 `$env:CPU_LAB_ROOT` 后再运行 batch。
 这个变量应指向单个实验 worktree，不是整个多分支的任务目录。
+
+## Vivado 2018.3 旧 COE 登记问题
+
+实测在把课程 2019.2 XCI 加入 2018.3 工程、升级 IP 后，工具自动登记了原 XCI
+相对 COE 路径。虽然 `CONFIG.Coe_File` 随后设置到了有效的新路径，旧缺失路径
+仍留在工程文件集。RAM OOC 综合能完成，但顶层综合生成的 Tcl 仍尝试添加旧
+文件，报 `ERROR: [Vivado 12-172] File or Directory .../tmp/func/obj/inst_ram.coe
+does not exist`，因此不能把 OOC 成功当作整体工程成功。
+
+修复使用 `get_files -all *.coe`、`get_property NAME`、`file exists` 和
+`remove_files`，只移除不存在的 COE 文件登记，保留有效新镜像；不直接修改 XPR。
+创建流程在生成 IP 输出前后检查，构建流程打开已有项目后也修复。两块 RAM
+自检要求 `CONFIG.Load_Init_File=true` 且 `CONFIG.Coe_File` 确实存在；仅配置
+错误的 RAM IP 重新生成输出，已成功且配置正确的 OOC DCP 不重置。
+
+已有顶层 synth_1/impl_1 若 STATUS 含 ERROR/failed，会单独 `reset_run` 后重启；
+过时顶层 run 也重新构建，已完整且无需刷新的 run 可复用。完成检查同时确认
+STATUS 不含错误和 PROGRESS=100%，避免失败进度记录误判。实际恢复构建及
+时序结果由主代理执行并追加，修复脚本提交本身不声称恢复构建已成功。

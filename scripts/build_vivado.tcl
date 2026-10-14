@@ -8,6 +8,7 @@ if {[info exists env(CPU_LAB_ROOT)] && $env(CPU_LAB_ROOT) ne ""} {
 set project_mode [lindex $argv 0]
 if {$project_mode eq ""} { set project_mode local }
 if {$project_mode ni {local remote}} { error "Mode must be local or remote" }
+source [file join $repo_dir scripts vivado_helpers.tcl]
 set jobs [lindex $argv 1]
 if {$jobs eq ""} { set jobs 4 }
 set project_file [file join $repo_dir build vivado-$project_mode loongson.xpr]
@@ -16,12 +17,22 @@ if {[file exists $project_file]} {
 } else {
     source [file join $script_dir create_vivado.tcl]
 }
-launch_runs synth_1 -jobs $jobs
-wait_on_run synth_1
-if {[get_property PROGRESS [get_runs synth_1]] ne "100%"} { error "Synthesis failed" }
-launch_runs impl_1 -to_step write_bitstream -jobs $jobs
-wait_on_run impl_1
-if {[get_property PROGRESS [get_runs impl_1]] ne "100%"} { error "Implementation/bitstream failed" }
+lab_restore_ram_images [file join $repo_dir cdp_ede_local-master mycpu_env]
+update_compile_order -fileset sources_1
+# Recover failed generated projects too. Only top-level runs are reset;
+# successful inst/data/PLL OOC runs retain their checkpoints.
+lab_reset_failed_run impl_1
+lab_reset_failed_run synth_1
+if {[lab_run_needs_launch synth_1]} {
+    launch_runs synth_1 -jobs $jobs
+    wait_on_run synth_1
+}
+lab_check_run_complete synth_1
+if {[lab_run_needs_launch impl_1]} {
+    launch_runs impl_1 -to_step write_bitstream -jobs $jobs
+    wait_on_run impl_1
+}
+lab_check_run_complete impl_1
 open_run impl_1
 set report_dir [file join $repo_dir test-results vivado-$project_mode]
 file mkdir $report_dir
