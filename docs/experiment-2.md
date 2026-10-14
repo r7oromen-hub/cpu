@@ -120,4 +120,19 @@ Windows 可使用提供的 Python 环境运行同一脚本（脚本自动转交 
 
 共享参考测试平台在完成标记以后有一次已关闭描述符 `$fdisplay` 警告；golden 文件生成、全部启用写回数量和 DUT 的完整对拍均已通过，该警告不是 CPU 失败。没有修改独立参考核心。
 
-本机尚未运行 Vivado 综合/实现、时序报告、FPGA 上板或线上测评。本记录不将这些未执行项目标为通过。外部异步 BaseRAM 的具体时钟频率及板级时序约束还需要真实目标板验收。
+## Vivado 最终验收
+
+2026-10-14 已完成 Vivado 2018.3 CPU-only 综合及远程 BRAM SoC 顶层的综合、
+布局布线与 bitstream 生成，目标 `xc7a200tfbg676-1`。实际 CPU 50 MHz，
+计时器 100 MHz；WNS=0.195 ns、WHS=0.073 ns、WPWS=4.500 ns，
+TNS/THS/TPWS 均为 0，DRC 违规为 0。当前镜像为 ex3；原始 ex2/ex3 镜像内容
+相同，摘要列出两个匹配镜像名。生成 RAM MIF 与选定 COE 逐字一致。
+
+证据：[验收摘要](../test-results/vivado-remote/summary.json)、
+[最终时序](../test-results/vivado-remote/timing-summary.txt)、
+[DRC](../test-results/vivado-remote/drc.txt)、
+[CPU-only 综合资源](../test-results/cpu-synthesis/utilization.rpt)。
+可重新打开 `build/vivado-remote/loongson.xpr`；输出是
+`build/vivado-remote/loongson.runs/impl_1/looongson_remote_top.bit`。
+实际上板和线上测评未执行；独立 `BaseRAM_control` 只完成接口定向仿真，
+本次远程工程使用片内同步 BRAM，不声称已验证外部异步 BaseRAM 的板级时序。
