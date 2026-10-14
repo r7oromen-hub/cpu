@@ -1,7 +1,12 @@
 #Clock
 set_property -dict {PACKAGE_PIN K21 IOSTANDARD LVCMOS33} [get_ports clk_50M] ;#50MHz main clock in
 set_property -dict {PACKAGE_PIN H21 IOSTANDARD LVCMOS33} [get_ports clk_11M0592] ;#11.0592MHz clock for UART
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets clk_11M0592_IBUF]
+# Unused clock inputs can be optimized away in this BRAM-based CPU template.
+# Apply the routing exception only when the corresponding net is present.
+set optional_uart_clock [get_nets -quiet clk_11M0592_IBUF]
+if {[llength $optional_uart_clock]} {
+    set_property CLOCK_DEDICATED_ROUTE FALSE $optional_uart_clock
+}
 
 create_clock -period 20.000 -name clk_50M -waveform {0.000 10.000} [get_ports clk_50M]
 create_clock -period 90.422 -name clk_11M0592 -waveform {0.000 45.211} [get_ports clk_11M0592]
@@ -15,7 +20,10 @@ set_property -dict {PACKAGE_PIN U1 IOSTANDARD LVCMOS33} [get_ports clock_btn] ;#
 set_property -dict {PACKAGE_PIN U5 IOSTANDARD LVCMOS33} [get_ports reset_btn] ;#BTN6
 
 #required if touch button used as manual clock source
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets clock_btn_IBUF]
+set optional_button_clock [get_nets -quiet clock_btn_IBUF]
+if {[llength $optional_button_clock]} {
+    set_property CLOCK_DEDICATED_ROUTE FALSE $optional_button_clock
+}
 set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets reset_btn_IBUF]
 
 #CPLD GPIO 12-16
