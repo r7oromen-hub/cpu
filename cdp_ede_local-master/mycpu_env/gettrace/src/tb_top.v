@@ -109,8 +109,11 @@ assign debug_wb_rf_wdata_v[7 : 0] = debug_wb_rf_wdata[7 : 0] & {8{debug_wb_rf_we
 
 // open the trace file;
 integer trace_ref;
+reg [4095:0] trace_file;
 initial begin
-    trace_ref = $fopen(`TRACE_REF_FILE, "w");
+    if (!$value$plusargs("TRACE_FILE=%s", trace_file)) trace_file = `TRACE_REF_FILE;
+    trace_ref = $fopen(trace_file, "w");
+    if (trace_ref == 0) $fatal(1, "Cannot create reference trace");
 end
 
 reg        debug_end;
@@ -142,7 +145,7 @@ begin
             $display("--------------------------------------------------------------");
             $display("[%t] Error(%d)!!! Occurred in number 8'd%02d Functional Test Point!",$time, err_count, confreg_num_reg[31:24]);
             $display("--------------------------------------------------------------");
-            $stop;
+            $fatal(1, "Reference functional test failed");
             err_count <= err_count + 1'b1;
         end
         else if(confreg_num_reg[31:24]!=confreg_num_reg_r[31:24]+1'b1)
@@ -151,7 +154,7 @@ begin
             $display("[%t] Error(%d)!!! Unknown, Functional Test Point numbers are unequal!",$time,err_count);
             $display("--------------------------------------------------------------");
             $display("==============================================================");
-            $stop;
+            $fatal(1, "Reference functional point sequence failed");
             err_count <= err_count + 1'b1;
         end
         else
@@ -173,7 +176,8 @@ begin
     while(`CONFREG_NUM_MONITOR)
     begin
         #10000;
-        $display ("        [%t] Test is running, debug_wb_pc = 0x%8h",$time, debug_wb_pc);
+        if ($test$plusargs("VERBOSE"))
+            $display ("        [%t] Test is running, debug_wb_pc = 0x%8h",$time, debug_wb_pc);
     end
 end
 
@@ -189,7 +193,7 @@ begin
     begin
         if(uart_data==8'hff)
         begin
-            $finish;
+            ; // Finish only in the common end handler, after trace is closed.
         end
         else
         begin
@@ -199,7 +203,7 @@ begin
 end
 
 //test end
-wire test_end = (debug_wb_pc==`END_PC);
+wire test_end = (debug_wb_pc==`END_PC) || (uart_display && uart_data==8'hff);
 always @(posedge soc_clk)
 begin
     if (!resetn)
@@ -215,7 +219,7 @@ begin
 	    $fclose(trace_ref);
         if (err_count!=8'd0)
         begin
-            $display("Fail in generating trace file!!! Total %d errors!",err_count);
+            $fatal(1, "Fail in generating trace file!!! Total %d errors!",err_count);
         end
         else
         begin

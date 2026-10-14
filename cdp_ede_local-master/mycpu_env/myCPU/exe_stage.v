@@ -10,6 +10,7 @@ module exe_stage(
     output wire                         es_allowin,
     output wire                         es_to_ms_valid,
     output wire [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
+    output wire [`ES_TO_DS_BUS_WD -1:0] es_to_ds_bus,
     output wire                         data_sram_en,
     output wire [ 3:0]                  data_sram_we,
     output wire [31:0]                  data_sram_addr,
@@ -67,10 +68,15 @@ alu u_alu(
     .alu_result (es_alu_result )
 );
 
-assign data_sram_en    = es_valid && (es_res_from_mem || es_mem_we);
-assign data_sram_we    = {4{es_valid && es_mem_we}};
+// Only the transfer edge may issue a memory operation. This prevents repeated
+// stores if a later extension adds downstream backpressure.
+assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
+                        (es_res_from_mem || es_mem_we);
+assign data_sram_we    = {4{data_sram_en && es_mem_we}};
 assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = es_rkd_value;
+assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
+                       es_res_from_mem, es_dest, es_alu_result};
 
 assign es_to_ms_bus = {
     es_res_from_mem,

@@ -1,13 +1,15 @@
 `include "mycpu_head.v"
 `timescale 1ns / 1ps
 
-module id_stage(
+module id_stage #(parameter FORWARDING = 1)(
     input  wire                         clk,
     input  wire                         reset,
     input  wire                         es_allowin,
     input  wire                         fs_to_ds_valid,
     input  wire [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     input  wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
+    input  wire [`ES_TO_DS_BUS_WD -1:0] es_to_ds_bus,
+    input  wire [`MS_TO_DS_BUS_WD -1:0] ms_to_ds_bus,
     output wire                         ds_allowin,
     output wire                         ds_to_es_valid,
     output wire [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
@@ -22,7 +24,7 @@ wire [31:0]                  ds_pc;
 
 assign {ds_inst, ds_pc} = fs_to_ds_bus_r;
 
-assign ds_ready_go    = 1'b1;
+assign ds_ready_go    = !raw_stall;
 assign ds_allowin     = !ds_valid || (ds_ready_go && es_allowin);
 assign ds_to_es_valid = ds_valid && ds_ready_go;
 
@@ -166,7 +168,10 @@ assign src2_is_imm   = inst_slli_w | inst_srli_w | inst_srai_w |
                        inst_lu12i_w| inst_jirl   | inst_bl;
 assign res_from_mem  = inst_ld_w;
 assign dst_is_r1     = inst_bl;
-assign gr_we         = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b;
+assign gr_we         = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
+                       inst_nor | inst_and | inst_or | inst_xor |
+                       inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w |
+                       inst_ld_w | inst_jirl | inst_bl | inst_lu12i_w;
 assign mem_we        = inst_st_w;
 assign dest          = dst_is_r1 ? 5'd1 : rd;
 
@@ -200,16 +205,55 @@ wire [31:0] alu_src2;
 wire        rj_eq_rd;
 wire        br_taken;
 wire [31:0] br_target;
+wire        src1_used;
+wire        src2_used;
+wire        es_writes;
+wire        es_load;
+wire [ 4:0] es_dest;
+wire [31:0] es_result;
+wire        ms_writes;
+wire [ 4:0] ms_dest;
+wire [31:0] ms_result;
+wire        es_hit1, es_hit2, ms_hit1, ms_hit2, ws_hit1, ws_hit2;
+wire        raw_stall;
 
-assign rj_value  = rf_rdata1;
-assign rkd_value = rf_rdata2;
+// Immediate fields overlap rk/rj encodings; compare only genuinely read
+// operands. jirl uses rj for its target even though the ALU uses PC.
+assign src1_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
+                   inst_nor | inst_and | inst_or | inst_xor |
+                   inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w |
+                   inst_ld_w | inst_st_w | inst_jirl | inst_beq | inst_bne;
+assign src2_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
+                   inst_nor | inst_and | inst_or | inst_xor |
+                   inst_st_w | inst_beq | inst_bne;
+assign {es_writes, es_load, es_dest, es_result} = es_to_ds_bus;
+assign {ms_writes, ms_dest, ms_result} = ms_to_ds_bus;
+assign es_hit1 = src1_used && rf_raddr1 != 0 && es_writes && rf_raddr1 == es_dest;
+assign es_hit2 = src2_used && rf_raddr2 != 0 && es_writes && rf_raddr2 == es_dest;
+assign ms_hit1 = src1_used && rf_raddr1 != 0 && ms_writes && rf_raddr1 == ms_dest;
+assign ms_hit2 = src2_used && rf_raddr2 != 0 && ms_writes && rf_raddr2 == ms_dest;
+assign ws_hit1 = src1_used && rf_raddr1 != 0 && rf_we && rf_waddr != 0 && rf_raddr1 == rf_waddr;
+assign ws_hit2 = src2_used && rf_raddr2 != 0 && rf_we && rf_waddr != 0 && rf_raddr2 == rf_waddr;
+assign raw_stall = ds_valid && (FORWARDING ?
+                   (es_load && (es_hit1 || es_hit2)) :
+                   (es_hit1 || es_hit2 || ms_hit1 || ms_hit2 || ws_hit1 || ws_hit2));
+
+// Closest (youngest) producer wins. An EXE load hit stalls rather than using
+// an older MEM/WB value of the same register.
+assign rj_value  = !FORWARDING ? rf_rdata1 :
+                   es_hit1 ? es_result : ms_hit1 ? ms_result :
+                   ws_hit1 ? rf_wdata : rf_rdata1;
+assign rkd_value = !FORWARDING ? rf_rdata2 :
+                   es_hit2 ? es_result : ms_hit2 ? ms_result :
+                   ws_hit2 ? rf_wdata : rf_rdata2;
 assign alu_src1  = src1_is_pc ? ds_pc : rj_value;
 assign alu_src2  = src2_is_imm ? imm : rkd_value;
 
 assign rj_eq_rd = (rj_value == rkd_value);
 assign br_taken = ((inst_beq &&  rj_eq_rd) ||
                    (inst_bne && !rj_eq_rd) ||
-                    inst_jirl || inst_bl || inst_b) && ds_valid;
+                    inst_jirl || inst_bl || inst_b) &&
+                   ds_to_es_valid && es_allowin && !reset;
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b)
                  ? ds_pc + br_offs
                  : rj_value + jirl_offs;

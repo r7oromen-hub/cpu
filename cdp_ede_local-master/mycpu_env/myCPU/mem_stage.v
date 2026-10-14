@@ -10,7 +10,8 @@ module mem_stage(
     input  wire [31:0]                  data_sram_rdata,
     output wire                         ms_allowin,
     output wire                         ms_to_ws_valid,
-    output wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus
+    output wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
+    output wire [`MS_TO_DS_BUS_WD -1:0] ms_to_ds_bus
 );
 
 reg                          ms_valid;
@@ -51,6 +52,8 @@ end
 
 assign ms_final_result = ms_res_from_mem ? data_sram_rdata
                                          : ms_alu_result;
+assign ms_to_ds_bus = {ms_valid && ms_gr_we && ms_dest != 5'd0,
+                       ms_dest, ms_final_result};
 assign ms_to_ws_bus = {
     ms_gr_we,
     ms_dest,

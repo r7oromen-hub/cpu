@@ -30,7 +30,9 @@ assign {br_taken, br_target} = br_bus;
 assign to_fs_valid    = ~reset;
 assign fs_ready_go    = 1'b1;
 assign fs_allowin     = !fs_valid || (fs_ready_go && ds_allowin);
-assign fs_to_ds_valid = fs_valid && fs_ready_go;
+// A redirect is emitted only when ID advances. The old IF instruction belongs
+// to the fall-through path and must never enter ID on this same edge.
+assign fs_to_ds_valid = fs_valid && fs_ready_go && !br_taken;
 
 assign seq_pc = fs_pc + 32'd4;
 assign nextpc = br_taken ? br_target : seq_pc;
