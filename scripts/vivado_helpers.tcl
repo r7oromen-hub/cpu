@@ -1,4 +1,53 @@
 # Shared Vivado project repair checks. Use project APIs, never rewrite .xpr XML.
+proc lab_clock_configuration {repo_dir project_mode} {
+    set cpu_clock_mhz 50.0
+    set config_file [file join $repo_dir config clock.tcl]
+    if {[file exists $config_file]} { source $config_file }
+    if {![string is double -strict $cpu_clock_mhz] || $cpu_clock_mhz <= 0} {
+        error "Invalid cpu_clock_mhz in $config_file: $cpu_clock_mhz"
+    }
+    set input_clock_mhz [expr {$project_mode eq "remote" ? 50.0 : 100.0}]
+    return [list CONFIG.PRIM_IN_FREQ $input_clock_mhz \
+        CONFIG.CLKOUT1_REQUESTED_OUT_FREQ $cpu_clock_mhz \
+        CONFIG.CLKOUT2_REQUESTED_OUT_FREQ 100.0]
+}
+
+proc lab_regenerate_changed_ip {ip} {
+    set run [get_runs -quiet ${ip}_synth_1]
+    if {[llength $run]} {
+        puts "Resetting only changed IP OOC run: $run"
+        reset_run $run
+    }
+    reset_target all $ip
+    generate_target all $ip
+}
+
+proc lab_configure_pll {repo_dir project_mode {regenerate 0}} {
+    set ip [get_ips -quiet clk_pll]
+    if {[llength $ip] != 1} { error "Expected exactly one clock IP named clk_pll" }
+    set config [lab_clock_configuration $repo_dir $project_mode]
+    set changed 0
+    foreach {property expected} $config {
+        set actual [get_property $property $ip]
+        if {![string is double -strict $actual] || double($actual) != double($expected)} {
+            set changed 1
+        }
+    }
+    if {$changed} {
+        puts "Updating PLL clock configuration: $config"
+        set_property -dict $config $ip
+        if {$regenerate} { lab_regenerate_changed_ip $ip }
+    }
+    foreach {property expected} $config {
+        set actual [get_property $property $ip]
+        if {![string is double -strict $actual] || double($actual) != double($expected)} {
+            error "PLL did not retain $property=$expected MHz: $actual"
+        }
+    }
+    puts "PLL_CLOCK_READY: $config"
+    return $changed
+}
+
 proc lab_remove_missing_coe {} {
     set removed 0
     foreach coefficient [get_files -all -quiet *.coe] {

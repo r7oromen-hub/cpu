@@ -17,8 +17,15 @@ if {[file exists $project_file]} {
 } else {
     source [file join $script_dir create_vivado.tcl]
 }
+set clock_changed [lab_configure_pll $repo_dir $project_mode 1]
 lab_restore_ram_images [file join $repo_dir cdp_ede_local-master mycpu_env] [file dirname $project_file]
 update_compile_order -fileset sources_1
+if {$clock_changed} {
+    # A real PLL frequency change invalidates both top-level results, but does
+    # not invalidate the inst/data RAM OOC checkpoints.
+    reset_run impl_1
+    reset_run synth_1
+}
 # Recover failed generated projects too. Only top-level runs are reset;
 # successful inst/data/PLL OOC runs retain their checkpoints.
 lab_reset_failed_run impl_1
