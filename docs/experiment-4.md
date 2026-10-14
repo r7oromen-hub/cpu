@@ -73,4 +73,27 @@ python3 scripts/run_regression.py --image ex6_obj --mode stall
 
 JSON 汇总：`test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj-ex4_obj-ex5_obj-ex6_obj.json` 和 `test-results/regression-stall-ex6_obj.json`。详细原始日志和参考轨迹在忽略的 `test-results/raw/` 内。
 
-尚未宣称 Vivado 综合、时序、实物上板或线上测评通过。这些由主任务集中处理并另行记录。
+## Vivado 验收与时序问题
+
+2026-10-14 已完成 Vivado 2018.3 CPU-only 综合，以及 `xc7a200tfbg676-1`
+远程 BRAM SoC 顶层综合、布局布线和 bitstream 生成。
+
+首次实际 CPU 50 MHz 布线后 WNS=-1.860 ns，未通过 setup 验收。最长路径从
+数据 RAM，经 MEM 子字节选择/扩展、ID 前递及分支控制到指令 RAM 使能。
+CPU-only 综合通过不能证明含 BRAM 的板级时序通过；首次生成的 bitstream
+没有作为成功结果交付。
+
+最终在本分支 `config/clock.tcl` 将实际 PLL 的 CPU 输出改为 25 MHz，输入
+仍为板级 50 MHz、timer 输出仍为 100 MHz。由生成时钟反映真实 40 ns 周期，
+没有添加 false path、放宽虚假约束、关闭 DRC 或改变指令语义；代价是每秒 CPU
+周期数减半，后续实验五继承此配置。重新综合和布线后 WNS=4.622 ns、
+WHS=0.119 ns、WPWS=4.500 ns，TNS/THS/TPWS 全为 0，DRC 违规为 0。
+当前 RAM 镜像为 ex6，生成 MIF 与选定 COE 逐字相同。
+
+证据：[验收摘要](../test-results/vivado-remote/summary.json)、
+[最终时序及真实时钟](../test-results/vivado-remote/timing-summary.txt)、
+[DRC](../test-results/vivado-remote/drc.txt)、
+[CPU-only 综合资源](../test-results/cpu-synthesis/utilization.rpt)。
+工程在 `build/vivado-remote/loongson.xpr`，输出在
+`build/vivado-remote/loongson.runs/impl_1/looongson_remote_top.bit`。
+物理 FPGA 上板和校内线上评测未执行，不标为通过。
