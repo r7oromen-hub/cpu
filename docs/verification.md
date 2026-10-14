@@ -66,3 +66,9 @@ setup/hold slack。更换镜像后已有工程的 RAM IP 必须重新生成输�
 平台入口和账号，以及实际上传和平台结果；本地仿真或 Vivado 完成不能替代它。
 
 当前 Vivado 流程由主代理统一运行并记录实测结果；脚本本身不代表综合或上板通过。
+
+Vivado 2018.3 在中文目录上执行 `file normalize` 可能破坏路径，包括 ASCII
+junction 指向中文目录的情况。可在调用前将 `CPU_LAB_ROOT` 设置为本 worktree
+的绝对 ASCII junction 路径；脚本会按原样使用该路径，不再 normalize。
+例如主代理统一验证创建的临时 alias，设置 `$env:CPU_LAB_ROOT` 后再运行 batch。
+这个变量应指向单个实验 worktree，不是整个多分支的任务目录。

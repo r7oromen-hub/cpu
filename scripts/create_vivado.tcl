@@ -1,6 +1,12 @@
 # Vivado batch example: vivado -mode batch -source scripts/create_vivado.tcl -tclargs local
 # This creates a NEW project and never silently overwrites an existing one.
-set repo_dir [file normalize [file join [file dirname [info script]] ..]]
+if {[info exists env(CPU_LAB_ROOT)] && $env(CPU_LAB_ROOT) ne ""} {
+    # Vivado 2018.3 can corrupt Chinese paths when normalizing a junction.
+    # Preserve an explicitly supplied absolute ASCII worktree alias verbatim.
+    set repo_dir $env(CPU_LAB_ROOT)
+} else {
+    set repo_dir [file normalize [file join [file dirname [info script]] ..]]
+}
 if {![info exists project_mode]} {
     set project_mode [lindex $argv 0]
     if {$project_mode eq ""} { set project_mode local }
@@ -44,7 +50,7 @@ foreach ip_name {clk_pll inst_ram data_ram} {
         set_property CONFIG.PRIM_IN_FREQ $input_freq $ip
     } else {
         set_property -dict [list CONFIG.Load_Init_File true CONFIG.Coe_File \
-            [file normalize [file join $env_dir func obj $ip_name.coe]]] $ip
+            [file join $env_dir func obj $ip_name.coe]] $ip
     }
     generate_target all $ip
 }
