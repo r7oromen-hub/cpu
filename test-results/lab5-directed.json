@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-14",
+  "status": "PASS",
+  "command": "bash scripts/run_lab5_directed.sh",
+  "divider": {
+    "cases": 2243,
+    "coverage": ["signed and unsigned corner matrix", "2000 seeded random cases", "busy start ignored", "continuous requests", "output hold", "reset abort"]
+  },
+  "pipeline_forward": {"compared_writebacks": 671, "cycles": 1243, "division_starts": 17, "stores": 2},
+  "pipeline_stall": {"compared_writebacks": 671, "cycles": 1520, "division_starts": 17, "stores": 2},
+  "random_multiply_comparisons": 384,
+  "exe_backpressure": {"status": "PASS", "held_completion_cycles": 8, "store_requests": 1, "reset_abort": true}
+}

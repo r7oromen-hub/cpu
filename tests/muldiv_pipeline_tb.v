@@ -8,11 +8,15 @@ wire [3:0] iwe,dwe,wbwe;
 wire [31:0] ia,iw,da,dw,wbpc,wbdata;
 wire [4:0] wbreg;
 reg [31:0] ir=0,dr=0;
-reg [31:0] imem[0:255],dmem[0:255];
-reg [31:0] epc[0:127],edata[0:127];
-reg [4:0] ereg[0:127];
+reg [31:0] imem[0:1023],dmem[0:1023];
+reg [31:0] epc[0:1023],edata[0:1023];
+reg [4:0] ereg[0:1023];
 integer i,k,pos=0,n=0,checked=0,cycles=0,stores=0,starts=0;
 integer division_instructions=0;
+integer seed=32'h5142026;
+reg [31:0] random_a,random_b;
+reg signed [63:0] signed_product;
+reg [63:0] unsigned_product;
 mycpu_top dut(.clk(clk),.resetn(resetn),
  .inst_sram_en(ien),.inst_sram_we(iwe),.inst_sram_addr(ia),
  .inst_sram_wdata(iw),.inst_sram_rdata(ir),
@@ -44,7 +48,7 @@ begin imem[pos]=instruction;pos=pos+1;end
 endtask
 
 initial begin
-    for(i=0;i<256;i=i+1) begin imem[i]=32'h50000000;dmem[i]=0;end
+    for(i=0;i<1024;i=i+1) begin imem[i]=32'h50000000;dmem[i]=0;end
     dmem[0]=-32'd37;dmem[1]=5;dmem[2]=-32'd5;
     dmem[3]=32'h80000000;dmem[4]=32'hffffffff;
     dmem[5]=32'hfffffffe;dmem[6]=32'h40000000;
@@ -85,15 +89,28 @@ initial begin
     emit(rr(32'h00200000,30,29,3),30,0);       // dividend < divisor
     emit(rr(32'h00208000,31,29,3),31,1);
     raw_emit(mem(1,31,72));
+    // 384 multiply comparisons against independent signed/unsigned 64-bit
+    // arithmetic, including immediate load-to-multiply dependency each group.
+    for(i=0;i<128;i=i+1) begin
+        random_a=$random(seed);random_b=$random(seed);
+        signed_product=$signed(random_a)*$signed(random_b);
+        unsigned_product=random_a*random_b;
+        dmem[64+i*2]=random_a;dmem[65+i*2]=random_b;
+        emit(mem(0,2,256+i*8),2,random_a);
+        emit(mem(0,3,260+i*8),3,random_b);
+        emit(rr(32'h001c0000,4,2,3),4,unsigned_product[31:0]);
+        emit(rr(32'h001c8000,5,2,3),5,signed_product[63:32]);
+        emit(rr(32'h001d0000,6,2,3),6,unsigned_product[63:32]);
+    end
     emit(addi(4,0,42),4,42);                 // final completion write
     #40 resetn=1;
 end
 
 always @(posedge clk) begin
-    if(ien) ir<=imem[ia[9:2]];
+    if(ien) ir<=imem[ia[11:2]];
     if(den) begin
-        dr<=dmem[da[9:2]];
-        for(k=0;k<4;k=k+1) if(dwe[k]) dmem[da[9:2]][8*k+:8]<=dw[8*k+:8];
+        dr<=dmem[da[11:2]];
+        for(k=0;k<4;k=k+1) if(dwe[k]) dmem[da[11:2]][8*k+:8]<=dw[8*k+:8];
         if(|dwe) begin
             stores=stores+1;
             if(da!==64 && da!==72) $fatal(1,"wrong-path/repeated store da=%h",da);
