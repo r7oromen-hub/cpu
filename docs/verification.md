@@ -85,9 +85,44 @@ does not exist`，因此不能把 OOC 成功当作整体工程成功。
 `remove_files`，只移除不存在的 COE 文件登记，保留有效新镜像；不直接修改 XPR。
 创建流程在生成 IP 输出前后检查，构建流程打开已有项目后也修复。两块 RAM
 自检要求 `CONFIG.Load_Init_File=true` 且 `CONFIG.Coe_File` 确实存在；仅配置
-错误的 RAM IP 重新生成输出，已成功且配置正确的 OOC DCP 不重置。
+错误或初始化内容发生变化的 RAM IP 重新生成输出，其他已成功的 OOC DCP 不重置。
 
 已有顶层 synth_1/impl_1 若 STATUS 含 ERROR/failed，会单独 `reset_run` 后重启；
 过时顶层 run 也重新构建，已完整且无需刷新的 run 可复用。完成检查同时确认
 STATUS 不含错误和 PROGRESS=100%，避免失败进度记录误判。实际恢复构建及
 时序结果由主代理执行并追加，修复脚本提交本身不声称恢复构建已成功。
+
+## 时钟配置与镜像内容保护
+
+共用脚本默认 CPU 输出 50 MHz，可读取本分支 `config/clock.tcl` 中的
+`cpu_clock_mhz`。实验四、五实际布线后在 50 MHz 分别出现 WNS=-1.860 ns 和
+-2.007 ns，主要路径涉及 MEM 字节选择/EXE 乘法经 ID 分支判断到取指使能。
+两分支将 CPU 输出设为 25 MHz，板级输入仍为 remote 50 MHz/local 100 MHz，
+timer_clk 仍 100 MHz；时序约束和负 slack 失败条件不放宽。最终 25 MHz
+实现结果由总览填写。现有工程发现 PLL 频率真正改变时只重置和生成 PLL 输出及
+它的 OOC run，再重建顶层，复用未变的 RAM DCP。
+
+RAM 镜像路径相同不代表内容相同。每次生成 RAM 后，将实际选用 COE 的完整
+二进制文件保存为项目 IP 目录中的 `init_snapshot.coe`。后续 build 比较内容；
+如果同一路径的 COE 被新测试镜像替换，只 reset_target/generate 改变的 RAM、
+重置对应 OOC run 和顶层，不重复综合另一块 RAM。写入快照前检查生成 `.mif`
+每个 32 位二进制字与当前 COE vector 完全一致。
+
+旧工程没有快照时，先比较生成 MIF 与当前 COE 的全部字及数量，一致后才能
+种下快照并复用已有输出；缺文件、字数不完整或任何值不同都会重建，不能凭
+路径和修改时间假设镜像正确。COE radix 支持 2/10/16，并拒绝超出 32 位的值。
+
+`python tests/test_vivado_helpers.py` 的七项 mock Tcl 检查实测通过，覆盖：PLL
+不变时复用、变频仅重置 PLL、旧工程完整 MIF 种快照、同路径内容替换只重建
+受影响 RAM、不完整 MIF 拒绝存快照、WPWS/报告缺失失败、DRC 违规失败。
+Windows Tcl 的 `scan %x` 可将 ffffffff 读成负数，因此字比较使用经格式检查的
+宽整数表达式，真实 32 位全 1 值不会被误判。
+
+`scripts/check_vivado_reuse.tcl` 只读打开已有工程并检查 RAM CONFIG、完整 MIF
+和 PLL 频率，不修改 IP、输出或运行状态。2026-10-14 在实际 Vivado 2018.3
+experiment-5 工程中返回 0，inst/data 均 `RAM_REUSE_GUARD_PASS`，最终
+`VIVADO_REUSE_API_PASS`。它不是 FPGA 上板测试。
+
+构建最终通过条件还包括零 DRC 违规、global timing summary 的 WPWS>=0 且
+脉宽失败端点数为 0；缺失或不完整报告失败。setup/hold 的原负 slack 检查保持，
+不得仅凭 bitstream 文件存在宣称时序达标。

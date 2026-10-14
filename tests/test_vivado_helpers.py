@@ -34,6 +34,8 @@ class VivadoHelpersTest(unittest.TestCase):
             proc generate_target {target object} {lappend ::generated $object}
             proc get_files {args} {return {}}
             proc remove_files {args} {error {No stale COE should be removed in this fixture}}
+            set ::violations {}
+            proc get_drc_violations {args} {return $::violations}
         """)
 
     def test_default_clock_preserves_existing_ip(self):
@@ -49,6 +51,66 @@ class VivadoHelpersTest(unittest.TestCase):
         self.assertEqual(self.tcl.eval("dict get $::properties clk_pll CONFIG.CLKOUT2_REQUESTED_OUT_FREQ"), "100.0")
         self.assertEqual(self.tcl.call("lab_configure_pll", str(self.repo), "remote", 1), 0)
         self.assertEqual(self.tcl.eval("llength $::reset_runs"), "1")
+
+    def make_ram_fixture(self):
+        env = self.repo / "env"
+        project = self.repo / "project"
+        (env / "func/obj").mkdir(parents=True)
+        for name in ["inst_ram", "data_ram"]:
+            ip_dir = project / "ip" / name
+            ip_dir.mkdir(parents=True)
+            image = env / "func/obj" / f"{name}.coe"
+            image.write_text("memory_initialization_radix=16;\nmemory_initialization_vector=\n00000001,ffffffff;\n")
+            (ip_dir / f"{name}.mif").write_text("00000000000000000000000000000001\n11111111111111111111111111111111\n")
+            self.tcl.call("dict", "set", "::properties", name, "CONFIG.Load_Init_File", "true")
+            self.tcl.call("dict", "set", "::properties", name, "CONFIG.Coe_File", "../../../env/func/obj/" + name + ".coe")
+        return env, project
+
+    def test_existing_mif_seeds_snapshot_without_reset(self):
+        env, project = self.make_ram_fixture()
+        self.assertEqual(self.tcl.call("lab_restore_ram_images", str(env), str(project)), 0)
+        self.assertEqual(self.tcl.eval("llength $::reset_runs"), "0")
+        for name in ["inst_ram", "data_ram"]:
+            self.assertEqual((project / "ip" / name / "init_snapshot.coe").read_bytes(),
+                             (env / "func/obj" / f"{name}.coe").read_bytes())
+
+    def test_same_path_changed_content_refreshes_only_affected_ram(self):
+        env, project = self.make_ram_fixture()
+        self.tcl.call("lab_restore_ram_images", str(env), str(project))
+        (env / "func/obj/inst_ram.coe").write_text("memory_initialization_radix=16;\nmemory_initialization_vector=\n00000002,ffffffff;\n")
+        # A mock generation product for the selected replacement image.
+        (project / "ip/inst_ram/inst_ram.mif").write_text("00000000000000000000000000000010\n11111111111111111111111111111111\n")
+        self.assertEqual(self.tcl.call("lab_restore_ram_images", str(env), str(project)), 1)
+        self.assertEqual(self.tcl.eval("set ::reset_runs"), "inst_ram_synth_1")
+        self.assertEqual(self.tcl.eval("set ::generated"), "inst_ram")
+        self.assertEqual(self.tcl.call("lab_restore_ram_images", str(env), str(project)), 0)
+        self.assertEqual(self.tcl.eval("llength $::reset_runs"), "1")
+
+    def test_incomplete_generated_mif_cannot_seed_snapshot(self):
+        env, project = self.make_ram_fixture()
+        ip_dir = project / "ip/inst_ram"
+        (ip_dir / "inst_ram.mif").write_text("00000000000000000000000000000001\n")
+        with self.assertRaises(tkinter.TclError):
+            self.tcl.call("lab_restore_ram_images", str(env), str(project))
+        self.assertFalse((ip_dir / "init_snapshot.coe").exists())
+        self.assertEqual(self.tcl.eval("set ::reset_runs"), "inst_ram_synth_1")
+
+    def test_pulse_width_failure_and_missing_summary_are_rejected(self):
+        report = self.repo / "timing.txt"
+        report.write_text("    WNS(ns) WHS(ns) WPWS(ns)\n0.1 0.0 0 10 0.1 0.0 0 10 4.5 0.0 0 4\n")
+        self.tcl.call("lab_check_pulse_width", str(report))
+        report.write_text("    WNS(ns) WHS(ns) WPWS(ns)\n0.1 0.0 0 10 0.1 0.0 0 10 -0.1 -0.1 1 4\n")
+        with self.assertRaises(tkinter.TclError):
+            self.tcl.call("lab_check_pulse_width", str(report))
+        report.write_text("Incomplete timing report\n")
+        with self.assertRaises(tkinter.TclError):
+            self.tcl.call("lab_check_pulse_width", str(report))
+
+    def test_drc_violation_is_rejected(self):
+        self.tcl.call("lab_check_drc")
+        self.tcl.eval("set ::violations {NSTD-1}")
+        with self.assertRaises(tkinter.TclError):
+            self.tcl.call("lab_check_drc")
 
 
 if __name__ == "__main__":
