@@ -69,6 +69,8 @@ python3 scripts/run_regression.py --image ex6_obj --mode stall
 | `ex5_obj` | 33/33 | 71,332 |
 | `ex6_obj` | 39/39 | 79,750 |
 
-JSON 汇总：`test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj-ex4_obj-ex5_obj-ex6_obj.json`。`ex6_obj` 纯阻塞模式正在进行，完成后补入结果。详细原始日志和参考轨迹在忽略的 `test-results/raw/` 内。
+`ex6_obj` 纯阻塞模式同样通过 39/39 功能点、79,750 条有效写回逐条对拍。
+
+JSON 汇总：`test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj-ex4_obj-ex5_obj-ex6_obj.json` 和 `test-results/regression-stall-ex6_obj.json`。详细原始日志和参考轨迹在忽略的 `test-results/raw/` 内。
 
 尚未宣称 Vivado 综合、时序、实物上板或线上测评通过。这些由主任务集中处理并另行记录。
