@@ -185,8 +185,10 @@ if(data_sram_en && |data_sram_wen) data_ram[data_sram_addr_mapped[19:2]] <= {
     data_sram_wen[0] ? data_sram_wdata [7:0] : data_ram[data_sram_addr_mapped[19:2]][7:0]
 };
 
+reg [4095:0] image_file;
 initial begin
-    $readmemb(`INST_COE, data_ram);
+    if (!$value$plusargs("INST_MIF=%s", image_file)) image_file = `INST_COE;
+    $readmemb(image_file, data_ram);
 end
 
 
