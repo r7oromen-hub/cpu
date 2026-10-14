@@ -91,6 +91,33 @@ BaseRAM 测试覆盖复位、未选中、读、部分写、地址截取、低有
 
 ## 完整功能回归与实物验收
 
-共享完整参考轨迹回归脚本接入后，会在本节补充 ex1/ex2/ex3 实际结果。定向测试已通过，但不能替代课程完整镜像测试。
+使用独立课程参考核 `gettrace/src/myCPU/SimpleLACoreWrapRAM.v` 重新生成 golden trace，再编译本分支 CPU 进行完整写回比对：
+
+```bash
+python3 scripts/run_regression.py --image ex1_obj ex2_obj ex3_obj --mode forward
+python3 scripts/run_regression.py --image ex2_obj --mode stall
+```
+
+Windows 可使用提供的 Python 环境运行同一脚本（脚本自动转交 WSL）：
+
+```powershell
+& 'C:\Users\nwulk\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' scripts/run_regression.py --image ex1_obj ex2_obj ex3_obj --mode forward
+& 'C:\Users\nwulk\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' scripts/run_regression.py --image ex2_obj --mode stall
+```
+
+2026-10-14 完整测试结果：
+
+| 镜像 | 模式 | 功能点 | 逐条写回比对 | 结果 |
+| --- | --- | --- | --- | --- |
+| ex1_obj | 前递 | 20/20 | 46,534/46,534 | PASS |
+| ex2_obj | 前递 | 20/20 | 46,534/46,534 | PASS |
+| ex3_obj | 前递 | 20/20 | 46,534/46,534 | PASS |
+| ex2_obj | 纯阻塞 | 20/20 | 46,534/46,534 | PASS |
+
+`test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj.json` 和 `test-results/regression-stall-ex2_obj.json` 保存镜像 SHA256、验证模式和比对数量。原始仿真输出位于被 Git 忽略的 `test-results/raw/`；定向输出位于 `test-results/lab2-directed/`。
+
+提供的 ex2_obj 与 ex3_obj 的 inst/data mif/coe 文件 SHA256 均相同，因此两种要求通过不同编译模式验收。定向测试中前递只有两个 load-use 等待周期、纯阻塞产生 31 个等待周期，直接证明两种实现的控制差异。
+
+共享参考测试平台在完成标记以后有一次已关闭描述符 `$fdisplay` 警告；golden 文件生成、全部启用写回数量和 DUT 的完整对拍均已通过，该警告不是 CPU 失败。没有修改独立参考核心。
 
 本机尚未运行 Vivado 综合/实现、时序报告、FPGA 上板或线上测评。本记录不将这些未执行项目标为通过。外部异步 BaseRAM 的具体时钟频率及板级时序约束还需要真实目标板验收。
