@@ -1,7 +1,13 @@
 `include "mycpu_head.v"
 `timescale 1ns / 1ps
 
-module mycpu_top(
+module mycpu_top #(
+`ifdef STALL_ONLY
+    parameter FORWARDING = 0
+`else
+    parameter FORWARDING = 1
+`endif
+)(
     input  wire        clk,
     input  wire        resetn,
 
@@ -42,6 +48,8 @@ wire [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus;
 wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
+wire [`ES_TO_DS_BUS_WD -1:0] es_to_ds_bus;
+wire [`MS_TO_DS_BUS_WD -1:0] ms_to_ds_bus;
 
 if_stage u_if_stage(
     .clk             (clk             ),
@@ -57,13 +65,15 @@ if_stage u_if_stage(
     .inst_sram_rdata (inst_sram_rdata )
 );
 
-id_stage u_id_stage(
+id_stage #(.FORWARDING(FORWARDING)) u_id_stage(
     .clk             (clk             ),
     .reset           (reset           ),
     .es_allowin      (es_allowin      ),
     .fs_to_ds_valid  (fs_to_ds_valid  ),
     .fs_to_ds_bus    (fs_to_ds_bus    ),
     .ws_to_rf_bus    (ws_to_rf_bus    ),
+    .es_to_ds_bus    (es_to_ds_bus    ),
+    .ms_to_ds_bus    (ms_to_ds_bus    ),
     .ds_allowin      (ds_allowin      ),
     .ds_to_es_valid  (ds_to_es_valid  ),
     .ds_to_es_bus    (ds_to_es_bus    ),
@@ -79,6 +89,7 @@ exe_stage u_exe_stage(
     .es_allowin      (es_allowin      ),
     .es_to_ms_valid  (es_to_ms_valid  ),
     .es_to_ms_bus    (es_to_ms_bus    ),
+    .es_to_ds_bus    (es_to_ds_bus    ),
     .data_sram_en    (data_sram_en    ),
     .data_sram_we    (data_sram_we    ),
     .data_sram_addr  (data_sram_addr  ),
@@ -94,7 +105,8 @@ mem_stage u_mem_stage(
     .data_sram_rdata (data_sram_rdata ),
     .ms_allowin      (ms_allowin      ),
     .ms_to_ws_valid  (ms_to_ws_valid  ),
-    .ms_to_ws_bus    (ms_to_ws_bus    )
+    .ms_to_ws_bus    (ms_to_ws_bus    ),
+    .ms_to_ds_bus    (ms_to_ds_bus    )
 );
 
 wb_stage u_wb_stage(
