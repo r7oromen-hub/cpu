@@ -90,6 +90,26 @@ class CollectorTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Routed clock'):
             collector.verify_clocks(self.project, self.timing.replace('20.000 50.000', '40.000 25.000'))
 
+    def test_zero_drc_violations(self):
+        self.assertEqual(collector.verify_drc('Violations found: 0\n')['drc_violations'], 0)
+
+    def test_reviewed_dsp_advisories_counted_not_hidden(self):
+        report = ('Violations found: 12\n| DPIP-1 | Warning | Input pipelining | 4 |\n'
+                  '| DPOP-1 | Warning | Output pipelining | 4 |\n'
+                  '| DPOP-2 | Warning | Output pipelining | 4 |\n')
+        self.assertEqual(collector.verify_drc(report)['drc_reviewed_warnings'],
+                         {'DPIP-1': 4, 'DPOP-1': 4, 'DPOP-2': 4})
+
+    def test_unknown_warning_and_elevated_severity_rejected(self):
+        for report in ['Violations found: 1\n| NSTD-1 | Warning | IO | 1 |\n',
+                       'Violations found: 1\n| DPIP-1 | Critical Warning | DSP | 1 |\n']:
+            with self.assertRaisesRegex(ValueError, 'Unaccepted'):
+                collector.verify_drc(report)
+
+    def test_incomplete_drc_table_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'count'):
+            collector.verify_drc('Violations found: 2\n| DPIP-1 | Warning | DSP | 1 |\n')
+
 
 if __name__ == '__main__':
     unittest.main()
