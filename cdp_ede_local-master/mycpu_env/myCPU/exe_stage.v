@@ -22,6 +22,8 @@ reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire                         es_ready_go;
 
 wire        es_res_from_mem;
+wire [ 1:0] es_mem_size;
+wire        es_load_unsigned;
 wire        es_mem_we;
 wire        es_gr_we;
 wire [ 4:0] es_dest;
@@ -33,6 +35,8 @@ wire [31:0] es_pc;
 wire [31:0] es_alu_result;
 
 assign {
+    es_mem_size,
+    es_load_unsigned,
     es_res_from_mem,
     es_mem_we,
     es_gr_we,
@@ -72,13 +76,21 @@ alu u_alu(
 // stores if a later extension adds downstream backpressure.
 assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
                         (es_res_from_mem || es_mem_we);
-assign data_sram_we    = {4{data_sram_en && es_mem_we}};
+wire [3:0] store_lanes = es_mem_size == `MEM_SIZE_BYTE ? (4'b0001 << es_alu_result[1:0]) :
+                         es_mem_size == `MEM_SIZE_HALF ? (es_alu_result[1] ? 4'b1100 : 4'b0011) :
+                                                        4'b1111;
+assign data_sram_we    = {4{data_sram_en && es_mem_we}} & store_lanes;
 assign data_sram_addr  = es_alu_result;
-assign data_sram_wdata = es_rkd_value;
+// Replication places the low byte/halfword in every possible selected lane.
+assign data_sram_wdata = es_mem_size == `MEM_SIZE_BYTE ? {4{es_rkd_value[7:0]}} :
+                         es_mem_size == `MEM_SIZE_HALF ? {2{es_rkd_value[15:0]}} :
+                                                        es_rkd_value;
 assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
                        es_res_from_mem, es_dest, es_alu_result};
 
 assign es_to_ms_bus = {
+    es_mem_size,
+    es_load_unsigned,
     es_res_from_mem,
     es_gr_we,
     es_dest,

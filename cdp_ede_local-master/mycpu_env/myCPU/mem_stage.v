@@ -19,6 +19,8 @@ reg  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
 wire                         ms_ready_go;
 
 wire        ms_res_from_mem;
+wire [ 1:0] ms_mem_size;
+wire        ms_load_unsigned;
 wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
@@ -26,6 +28,8 @@ wire [31:0] ms_pc;
 wire [31:0] ms_final_result;
 
 assign {
+    ms_mem_size,
+    ms_load_unsigned,
     ms_res_from_mem,
     ms_gr_we,
     ms_dest,
@@ -50,7 +54,14 @@ always @(posedge clk) begin
     end
 end
 
-assign ms_final_result = ms_res_from_mem ? data_sram_rdata
+// Little endian: address bits 1:0 select byte position in the returned word.
+wire [31:0] shifted_load = data_sram_rdata >> {ms_alu_result[1:0], 3'b000};
+wire [31:0] load_result = ms_mem_size == `MEM_SIZE_BYTE ?
+                         {{24{!ms_load_unsigned && shifted_load[7]}}, shifted_load[7:0]} :
+                         ms_mem_size == `MEM_SIZE_HALF ?
+                         {{16{!ms_load_unsigned && shifted_load[15]}}, shifted_load[15:0]} :
+                         data_sram_rdata;
+assign ms_final_result = ms_res_from_mem ? load_result
                                          : ms_alu_result;
 assign ms_to_ds_bus = {ms_valid && ms_gr_we && ms_dest != 5'd0,
                        ms_dest, ms_final_result};
