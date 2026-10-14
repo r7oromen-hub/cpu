@@ -57,6 +57,9 @@ foreach ip_name {clk_pll inst_ram data_ram} {
     # configuration points to the new image. Drop only nonexistent records.
     lab_remove_missing_coe
     generate_target all $ip
+    if {$ip_name ne "clk_pll"} {
+        lab_snapshot_ram_image $ip_name [file join $env_dir func obj $ip_name.coe] $ip_dir
+    }
 }
 lab_remove_missing_coe
 if {$project_mode eq "remote"} {
