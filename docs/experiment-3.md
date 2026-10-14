@@ -21,7 +21,11 @@
 ## 文件修改清单
 
 - `tests/isa_extensions_tb.v`：独立 CPU 级定向测试，不依赖交叉汇编器。通过实际执行指令建立操作数，逐条检查写回 PC、目标寄存器和结果；检查转移错误路径存储无副作用。
-- CPU 译码与控制修改将在实验二基础合入后记录。
+- `cdp_ede_local-master/mycpu_env/myCPU/id_stage.v`：增加 13 条指令译码；复用既有 12 位 ALU 操作码；增加逻辑立即数零扩展选择；PCADDU12I 选择指令 PC；扩展真实源寄存器使用掩码、写寄存器许可；增加有符号/无符号比较和条件分支分组，复用实验二的前递操作数和发射握手限定。
+- `scripts/run_lab3_directed.sh`：用 forward/stall 两模式运行定向检查。
+- `.gitignore`：忽略临时 PDF 渲染及 Icarus 编译产物，测试源码与汇总仍保留在 Git 中。
+
+本次没有改变级间总线宽度、EXE/MEM/WB 数据通路及 ALU。新增控制通过原有总线传递。实验二核心提交 `cc5ada7` 与其文档提交通过主任务合入本分支。
 
 ## 测试计划与结果
 
@@ -29,7 +33,35 @@
 
 完整回归计划：`ex1_obj` 至 `ex5_obj`，forward 模式；`ex4_obj`、`ex5_obj` 再使用 stall 模式核对无前递实现。官方程序使用独立参考核生成写回轨迹并逐条对比，不仅依据最终测试点计数。
 
-当前状态：已完成只读 ISA/源码预研与测试草稿，等待实验二基础合入。尚未宣称仿真、综合或上板通过。
+2026-10-14 定向测试实际输出（forward 与 stall 均相同）：
+
+```text
+DIRECTED ISA PASS: 43 writes, 601 cycles
+```
+
+601 周期包含末尾等待检查错误路径副作用的时间，不是性能测量。
+
+2026-10-14 完整镜像 forward 回归全部通过：
+
+| 镜像 | 功能点 | 独立参考核有效写回逐条一致 |
+| --- | ---: | ---: |
+| `ex1_obj` | 20/20 | 46,534 |
+| `ex2_obj` | 20/20 | 46,534 |
+| `ex3_obj` | 20/20 | 46,534 |
+| `ex4_obj` | 29/29 | 62,377 |
+| `ex5_obj` | 33/33 | 71,332 |
+
+复现命令：
+
+```bash
+bash scripts/run_lab3_directed.sh
+python3 scripts/run_regression.py --image ex1_obj ex2_obj ex3_obj ex4_obj ex5_obj --mode forward
+python3 scripts/run_regression.py --image ex4_obj ex5_obj --mode stall
+```
+
+纯阻塞模式 `ex4_obj` 29/29 点、62,377 次有效写回通过，`ex5_obj` 33/33 点、71,332 次有效写回通过。两种相关处理方式均能正确运行新增指令。
+
+前递回归汇总为 `test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj-ex4_obj-ex5_obj.json`，阻塞汇总为 `test-results/regression-stall-ex4_obj-ex5_obj.json`。原始编译/运行日志与参考轨迹位于 `test-results/raw/`（生成物不纳入 Git）。尚未宣称综合、时序、实物上板或线上测评通过。
 
 ## 问题记录
 

@@ -11,12 +11,14 @@
 **/*.log
 **/*.str
 **/*.vcd
+**/*.vvp
 **/*.wdb
 **/golden_trace.txt
 **/func/obj/
 **/func/obj_*/
 **/__pycache__/
 build/
+tmp/
 test-results/raw/
 # Unused course environments and software build trees.
 cdp_ede_local-master/mycpu_env/module_verify/

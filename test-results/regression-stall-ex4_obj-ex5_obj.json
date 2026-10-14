@@ -1,0 +1,32 @@
+[
+  {
+    "image": "ex4_obj",
+    "mode": "stall",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "6c526dab927f3612bbd7d962c41d870b4f56f22516b7b8a9dfdec42c07d4fed7",
+      "data_ram.mif": "6a27150629e6a6b1f29e24fb13165dc6547521ab72bae842b268e5b9ffb85cbc",
+      "inst_ram.coe": "474da975a5c90628a6732b915bdcc5e429050deefd50921d3e4ca2e55027bda0",
+      "data_ram.coe": "be5be1fea144da5bf0856d563a2ad1ca79be800aa0d9fa77a09308724bed76c6"
+    },
+    "functional_points": 29,
+    "compared_writebacks": 62377,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 30.626
+  },
+  {
+    "image": "ex5_obj",
+    "mode": "stall",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "49dc1193bd9227a4d19985af6d05946020bd26c2e0559804ca5a2ad0a6553b35",
+      "data_ram.mif": "6a27150629e6a6b1f29e24fb13165dc6547521ab72bae842b268e5b9ffb85cbc",
+      "inst_ram.coe": "9945ef6763a08ebb147986ac4c8b39566be20498a3e7a74819d372f9cd68f4dd",
+      "data_ram.coe": "be5be1fea144da5bf0856d563a2ad1ca79be800aa0d9fa77a09308724bed76c6"
+    },
+    "functional_points": 33,
+    "compared_writebacks": 71332,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 35.583
+  }
+]
