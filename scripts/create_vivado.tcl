@@ -52,7 +52,7 @@ foreach ip_name {clk_pll inst_ram data_ram} {
     } else {
         set_property -dict [list CONFIG.Load_Init_File true CONFIG.Coe_File \
             [file join $env_dir func obj $ip_name.coe]] $ip
-        lab_check_ram_ip $ip
+        lab_check_ram_ip $ip $ip_dir
     }
     # add_files/upgrade_ip may register the old relative COE even after the IP
     # configuration points to the new image. Drop only nonexistent records.

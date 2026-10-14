@@ -17,7 +17,7 @@ if {[file exists $project_file]} {
 } else {
     source [file join $script_dir create_vivado.tcl]
 }
-lab_restore_ram_images [file join $repo_dir cdp_ede_local-master mycpu_env]
+lab_restore_ram_images [file join $repo_dir cdp_ede_local-master mycpu_env] [file dirname $project_file]
 update_compile_order -fileset sources_1
 # Recover failed generated projects too. Only top-level runs are reset;
 # successful inst/data/PLL OOC runs retain their checkpoints.
