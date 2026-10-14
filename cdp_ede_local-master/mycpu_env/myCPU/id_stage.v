@@ -97,6 +97,12 @@ wire inst_srai_w;
 wire inst_addi_w;
 wire inst_ld_w;
 wire inst_st_w;
+wire inst_ld_b;
+wire inst_ld_h;
+wire inst_ld_bu;
+wire inst_ld_hu;
+wire inst_st_b;
+wire inst_st_h;
 wire inst_jirl;
 wire inst_b;
 wire inst_bl;
@@ -131,6 +137,12 @@ assign inst_srai_w  = op_31_26_d[6'h00] & op_25_22_d[4'h1] & op_21_20_d[2'h0] & 
 assign inst_addi_w  = op_31_26_d[6'h00] & op_25_22_d[4'ha];
 assign inst_ld_w    = op_31_26_d[6'h0a] & op_25_22_d[4'h2];
 assign inst_st_w    = op_31_26_d[6'h0a] & op_25_22_d[4'h6];
+assign inst_ld_b    = op_31_26_d[6'h0a] & op_25_22_d[4'h0];
+assign inst_ld_h    = op_31_26_d[6'h0a] & op_25_22_d[4'h1];
+assign inst_ld_bu   = op_31_26_d[6'h0a] & op_25_22_d[4'h8];
+assign inst_ld_hu   = op_31_26_d[6'h0a] & op_25_22_d[4'h9];
+assign inst_st_b    = op_31_26_d[6'h0a] & op_25_22_d[4'h4];
+assign inst_st_h    = op_31_26_d[6'h0a] & op_25_22_d[4'h5];
 assign inst_jirl    = op_31_26_d[6'h13];
 assign inst_b       = op_31_26_d[6'h14];
 assign inst_bl      = op_31_26_d[6'h15];
@@ -144,9 +156,11 @@ assign inst_bltu    = op_31_26_d[6'h1a];
 assign inst_bgeu    = op_31_26_d[6'h1b];
 
 wire inst_cond_branch = inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu;
+wire inst_load = inst_ld_w | inst_ld_b | inst_ld_h | inst_ld_bu | inst_ld_hu;
+wire inst_store = inst_st_w | inst_st_b | inst_st_h;
 
 wire [11:0] alu_op;
-assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | inst_bl | inst_pcaddu12i;
+assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_load | inst_store | inst_jirl | inst_bl | inst_pcaddu12i;
 assign alu_op[ 1] = inst_sub_w;
 assign alu_op[ 2] = inst_slt | inst_slti;
 assign alu_op[ 3] = inst_sltu | inst_sltui;
@@ -171,6 +185,8 @@ wire        res_from_mem;
 wire        dst_is_r1;
 wire        gr_we;
 wire        mem_we;
+wire [ 1:0] mem_size;
+wire        load_unsigned;
 wire [ 4:0] dest;
 wire [31:0] imm;
 wire [31:0] br_offs;
@@ -192,21 +208,25 @@ assign br_offs = need_si26 ? {{4{i26[25]}}, i26, 2'b0}
                             : {{14{i16[15]}}, i16, 2'b0};
 assign jirl_offs = {{14{i16[15]}}, i16, 2'b0};
 
-assign src_reg_is_rd = inst_cond_branch | inst_st_w;
+assign src_reg_is_rd = inst_cond_branch | inst_store;
 assign src1_is_pc    = inst_jirl | inst_bl | inst_pcaddu12i;
 assign src2_is_imm   = inst_slli_w | inst_srli_w | inst_srai_w |
-                       inst_addi_w | inst_ld_w   | inst_st_w   |
+                       inst_addi_w | inst_load   | inst_store   |
                        inst_lu12i_w| inst_jirl   | inst_bl |
                        inst_slti | inst_sltui | need_ui12 | inst_pcaddu12i;
-assign res_from_mem  = inst_ld_w;
+assign res_from_mem  = inst_load;
 assign dst_is_r1     = inst_bl;
 assign gr_we         = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                        inst_nor | inst_and | inst_or | inst_xor |
                        inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w |
-                       inst_ld_w | inst_jirl | inst_bl | inst_lu12i_w |
+                       inst_load | inst_jirl | inst_bl | inst_lu12i_w |
                        inst_slti | inst_sltui | inst_andi | inst_ori | inst_xori |
                        inst_sll_w | inst_srl_w | inst_sra_w | inst_pcaddu12i;
-assign mem_we        = inst_st_w;
+assign mem_we        = inst_store;
+assign mem_size      = (inst_ld_b | inst_ld_bu | inst_st_b) ? `MEM_SIZE_BYTE :
+                       (inst_ld_h | inst_ld_hu | inst_st_h) ? `MEM_SIZE_HALF :
+                                                             `MEM_SIZE_WORD;
+assign load_unsigned = inst_ld_bu | inst_ld_hu;
 assign dest          = dst_is_r1 ? 5'd1 : rd;
 
 wire        rf_we;
@@ -258,12 +278,12 @@ wire        raw_stall;
 assign src1_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                    inst_nor | inst_and | inst_or | inst_xor |
                    inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w |
-                   inst_ld_w | inst_st_w | inst_jirl | inst_cond_branch |
+                   inst_load | inst_store | inst_jirl | inst_cond_branch |
                    inst_slti | inst_sltui | inst_andi | inst_ori | inst_xori |
                    inst_sll_w | inst_srl_w | inst_sra_w;
 assign src2_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                    inst_nor | inst_and | inst_or | inst_xor |
-                   inst_st_w | inst_cond_branch | inst_sll_w | inst_srl_w | inst_sra_w;
+                   inst_store | inst_cond_branch | inst_sll_w | inst_srl_w | inst_sra_w;
 assign {es_writes, es_load, es_dest, es_result} = es_to_ds_bus;
 assign {ms_writes, ms_dest, ms_result} = ms_to_ds_bus;
 assign es_hit1 = src1_used && rf_raddr1 != 0 && es_writes && rf_raddr1 == es_dest;
@@ -302,6 +322,8 @@ assign br_target = (inst_cond_branch || inst_bl || inst_b)
 
 assign br_bus = {br_taken, br_target};
 assign ds_to_es_bus = {
+    mem_size,
+    load_unsigned,
     res_from_mem,
     mem_we,
     gr_we,
