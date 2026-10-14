@@ -27,6 +27,8 @@ MULDIV_EXE_HOLD PASS completed-output-hold/dependent-forward/single-store/reset-
 
 两个流水结果依次是前递和纯阻塞模式，两种模式均逐条对拍，没有重复除法请求或错误路径 store。
 
+集成后还重跑了前面实验的定向脚本：实验二 RAW/控制流分别 23 写回、39/68 周期，BaseRAM 接口 PASS；实验三扩展 ISA 两种模式均 43 写回 PASS；实验四字节/半字访存两种模式均 68 写回、8 次 store PASS。原功能没有因 DS→ES 总线扩展而退化。
+
 ## 流水集成与修改清单
 
 | 文件 | 修改内容 | 原因 |
@@ -56,6 +58,8 @@ EXE→ID 的 39 位总线保持位宽，将原 load 位推广为“结果未就�
 4. 除法请求只开始一次，完成结果不能随输入端总线变化。独立测试在运行中改变输入、发送无效 start，流水测试在下游堵塞后等待 8 周期，均断言结果稳定且不重启。
 5. `INT_MIN` 绝对值不能用 32 位有符号正数表示，但可用 unsigned magnitude `0x80000000`。内部按无符号 32 位幅值迭代，最终恢复二补码符号。
 
+已知继承边界：复位测试证明 EXE valid 清空、除法中断和 EXE 访存请求关闭，不代表通用寄存器堆全部清零。基线 WB 的 `rf_we` 只门控 `ws_valid/gr_we`，未直接门控 reset；任意时刻的 warm reset 首个清 valid 时钟沿可能仍提交旧 WB 写回。因此本分支不声称任意 warm reset 下完全没有 RF 写入，课程启动复位及 r0 恒零契约不受影响。
+
 ## 可复现测试与完整回归
 
 在 WSL 仓库根目录：
@@ -66,6 +70,20 @@ python3 scripts/run_regression.py --image ex1_obj ex2_obj ex3_obj ex4_obj ex5_ob
 python3 scripts/run_regression.py --image ex7_obj --mode stall
 ```
 
-完整回归独立编译未修改的课程参考核 `gettrace/src/myCPU/SimpleLACoreWrapRAM.v` 生成 trace，再与本分支 CPU 的有效写回比较。定向测试中的算术 oracle 位于 tests，不参与综合；参考核没有为迁就 DUT 修改乘除法核心。课程完整结果待运行完成补充。
+完整回归独立编译未修改的课程参考核 `gettrace/src/myCPU/SimpleLACoreWrapRAM.v` 生成 trace，再与本分支 CPU 的有效写回比较。定向测试中的算术 oracle 位于 tests，不参与综合；参考核没有为迁就 DUT 修改乘除法核心。
+
+2026-10-14 本分支前递模式完整回归全部 PASS，每个镜像所有功能点和启用写回记录均精确一致：
+
+| 镜像 | 功能点 | 启用写回对拍 | 结果 |
+| --- | --- | --- | --- |
+| ex1_obj | 20/20 | 46,534/46,534 | PASS |
+| ex2_obj | 20/20 | 46,534/46,534 | PASS |
+| ex3_obj | 20/20 | 46,534/46,534 | PASS |
+| ex4_obj | 29/29 | 62,377/62,377 | PASS |
+| ex5_obj | 33/33 | 71,332/71,332 | PASS |
+| ex6_obj | 39/39 | 79,750/79,750 | PASS |
+| ex7_obj | 46/46 | 86,846/86,846 | PASS |
+
+摘要文件：`test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj-ex4_obj-ex5_obj-ex6_obj-ex7_obj.json`，包含各镜像 SHA-256、耗时和独立参考核说明。纯阻塞模式 ex7 全镜像也已 PASS：46/46 功能点，86,846/86,846 启用写回记录；对应 `test-results/regression-stall-ex7_obj.json`。
 
 Vivado 综合/实现由主代理统一执行并补充结果；FPGA 上板和校内线上评测未执行，不标为通过。

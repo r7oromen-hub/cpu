@@ -9,5 +9,12 @@
   "pipeline_forward": {"compared_writebacks": 671, "cycles": 1243, "division_starts": 17, "stores": 2},
   "pipeline_stall": {"compared_writebacks": 671, "cycles": 1520, "division_starts": 17, "stores": 2},
   "random_multiply_comparisons": 384,
-  "exe_backpressure": {"status": "PASS", "held_completion_cycles": 8, "store_requests": 1, "reset_abort": true}
+  "exe_backpressure": {"status": "PASS", "held_completion_cycles": 8, "store_requests": 1, "reset_abort": true},
+  "prior_directed_regressions": {
+    "lab2_forward": {"status": "PASS", "writes": 23, "cycles": 39, "stalls": 2},
+    "lab2_stall": {"status": "PASS", "writes": 23, "cycles": 68, "stalls": 31},
+    "base_ram": {"status": "PASS"},
+    "lab3_forward_and_stall": {"status": "PASS", "writes_each": 43},
+    "lab4_forward_and_stall": {"status": "PASS", "writes_each": 68, "stores_each": 8}
+  }
 }
