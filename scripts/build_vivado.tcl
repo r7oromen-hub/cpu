@@ -1,6 +1,10 @@
 # vivado -mode batch -source scripts/build_vivado.tcl -tclargs local|remote [jobs]
 set script_dir [file dirname [info script]]
-set repo_dir [file normalize [file join $script_dir ..]]
+if {[info exists env(CPU_LAB_ROOT)] && $env(CPU_LAB_ROOT) ne ""} {
+    set repo_dir $env(CPU_LAB_ROOT)
+} else {
+    set repo_dir [file normalize [file join $script_dir ..]]
+}
 set project_mode [lindex $argv 0]
 if {$project_mode eq ""} { set project_mode local }
 if {$project_mode ni {local remote}} { error "Mode must be local or remote" }
