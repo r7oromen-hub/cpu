@@ -107,8 +107,13 @@ assign debug_wb_rf_wdata = soc_lite.debug_wb_rf_wdata;
 
 // open the trace file;
 integer trace_ref;
+integer trace_compared = 0;
+integer extra_fields;
+reg [4095:0] trace_file;
 initial begin
-    trace_ref = $fopen(`TRACE_REF_FILE, "r");
+    if (!$value$plusargs("TRACE_FILE=%s", trace_file)) trace_file = `TRACE_REF_FILE;
+    trace_ref = $fopen(trace_file, "r");
+    if (trace_ref == 0) $fatal(1, "Cannot open reference trace");
 end
 
 //get reference result in falling edge
@@ -130,7 +135,9 @@ begin
         begin
             a = $fscanf(trace_ref, "%h %h %h %h", trace_cmp_flag,
                     ref_wb_pc, ref_wb_rf_wnum, ref_wb_rf_wdata);
+            if (a != 4) $fatal(1, "Malformed or exhausted reference trace");
         end
+        if (!trace_cmp_flag) $fatal(1, "DUT produced an extra writeback");
     end
 end
 
@@ -169,9 +176,9 @@ begin
                       debug_wb_pc, debug_wb_rf_wnum, debug_wb_rf_wdata_v);
             $display("--------------------------------------------------------------");
             debug_wb_err <= 1'b1;
-            #40;
-            $finish;
+            $fatal(1, "Writeback trace mismatch");
         end
+        trace_compared = trace_compared + 1;
     end
 end
 
@@ -194,6 +201,7 @@ begin
             $display("[%t] Error(%d)!!! Occurred in number 8'd%02d Functional Test Point!",$time, err_count, confreg_num_reg[31:24]);
             $display("--------------------------------------------------------------");
             err_count <= err_count + 1'b1;
+            $fatal(1, "DUT functional test failed");
         end
         else if(confreg_num_reg[31:24]!=confreg_num_reg_r[31:24]+1'b1)
         begin
@@ -202,6 +210,7 @@ begin
             $display("--------------------------------------------------------------");
             $display("==============================================================");
             err_count <= err_count + 1'b1;
+            $fatal(1, "DUT functional point sequence failed");
         end
         else
         begin
@@ -222,7 +231,8 @@ begin
     while(`CONFREG_NUM_MONITOR)
     begin
         #10000;
-        $display ("        [%t] Test is running, debug_wb_pc = 0x%8h",$time, debug_wb_pc);
+        if ($test$plusargs("VERBOSE"))
+            $display ("        [%t] Test is running, debug_wb_pc = 0x%8h",$time, debug_wb_pc);
     end
 end
 
@@ -262,14 +272,24 @@ begin
         $display("==============================================================");
         $display("Test end!");
         #40;
+        // A premature END_PC must not hide missing reference writebacks.
+        while (!$feof(trace_ref)) begin
+            extra_fields = $fscanf(trace_ref, "%h %h %h %h", trace_cmp_flag,
+                ref_wb_pc, ref_wb_rf_wnum, ref_wb_rf_wdata);
+            if (extra_fields == 4 && trace_cmp_flag)
+                $fatal(1, "DUT ended before all reference writebacks");
+            if (extra_fields != 4 && !$feof(trace_ref))
+                $fatal(1, "Malformed trailing reference trace");
+        end
         $fclose(trace_ref);
         if (global_err)
         begin
-            $display("Fail!!!Total %d errors!",err_count);
+            $fatal(1, "Fail!!!Total %d errors!",err_count);
         end
         else
         begin
             $display("----PASS!!!");
+            $display("TRACE_COMPARED=%0d", trace_compared);
         end
 	    $finish;
 	end

@@ -19,14 +19,14 @@ input wire [ NUM_BYTES-1:0] we;
 input wire                  en;
 
 output reg  [DATA_WIDTH-1:0] rdata;
-output wire [DATA_WIDTH-1:0] wdata;
+input wire [DATA_WIDTH-1:0] wdata;
 
 reg [DATA_WIDTH-1:0] ram [0:DEPTH-1];
 
 genvar i;
 for (i = 0; i < NUM_BYTES; i = i + 1) begin
    always @(posedge clk) begin
-	   if (we[i]) ram[address][i*8 +: 8] <= wdata[i*8 +: 8];
+	   if (en && we[i]) ram[address][i*8 +: 8] <= wdata[i*8 +: 8];
    end
 end
 
@@ -58,8 +58,11 @@ module inst_ram #(
 			.we     (wea),
 			.en     (ena)
 		);
+		reg [4095:0] image_file;
 		initial begin
-			$readmemb("../../../../../../../../func/obj/inst_ram.mif", sync_ram.ram);
+			if (!$value$plusargs("INST_MIF=%s", image_file))
+				image_file = "../../../../../../../../func/obj/inst_ram.mif";
+			$readmemb(image_file, sync_ram.ram);
 		end
 endmodule
 
@@ -85,7 +88,10 @@ module data_ram #(
 			.we     (wea),
 			.en     (ena)
 		);
+		reg [4095:0] image_file;
 		initial begin
-			$readmemb("../../../../../../../../func/obj/data_ram.mif", sync_ram.ram);
+			if (!$value$plusargs("DATA_MIF=%s", image_file))
+				image_file = "../../../../../../../../func/obj/data_ram.mif";
+			$readmemb(image_file, sync_ram.ram);
 		end
 endmodule
