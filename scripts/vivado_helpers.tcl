@@ -12,9 +12,17 @@ proc lab_remove_missing_coe {} {
     return $removed
 }
 
-proc lab_check_ram_ip {ip} {
-    set enabled [get_property CONFIG.Load_Init_File $ip]
+proc lab_resolve_ip_coe {ip ip_dir} {
     set coefficient [get_property CONFIG.Coe_File $ip]
+    if {[file pathtype $coefficient] eq "relative"} {
+        set coefficient [file join $ip_dir $coefficient]
+    }
+    return $coefficient
+}
+
+proc lab_check_ram_ip {ip ip_dir} {
+    set enabled [get_property CONFIG.Load_Init_File $ip]
+    set coefficient [lab_resolve_ip_coe $ip $ip_dir]
     if {![string is boolean -strict $enabled] || !$enabled} {
         error "RAM IP $ip initialization is disabled: CONFIG.Load_Init_File=$enabled"
     }
@@ -24,15 +32,19 @@ proc lab_check_ram_ip {ip} {
     puts "RAM_IMAGE_READY: $ip, Load_Init_File=$enabled, Coe_File=$coefficient"
 }
 
-proc lab_restore_ram_images {env_dir} {
+proc lab_restore_ram_images {env_dir project_dir} {
     foreach ip_name {inst_ram data_ram} {
         set ip [get_ips -quiet $ip_name]
         if {[llength $ip] != 1} { error "Expected exactly one RAM IP named $ip_name" }
         set expected [file join $env_dir func obj $ip_name.coe]
         if {![file exists $expected]} { error "Missing selected RAM image: $expected" }
-        set configured [get_property CONFIG.Coe_File $ip]
+        set ip_dir [file join $project_dir ip $ip_name]
+        set configured [lab_resolve_ip_coe $ip $ip_dir]
         set enabled [get_property CONFIG.Load_Init_File $ip]
-        if {![string is boolean -strict $enabled] || !$enabled || $configured ne $expected} {
+        # CONFIG.Coe_File is relative to its XCI directory, not the process CWD.
+        # Normalize only for comparison; preserve the ASCII alias for file I/O.
+        if {![string is boolean -strict $enabled] || !$enabled ||
+            [file normalize $configured] ne [file normalize $expected]} {
             puts "Repairing RAM initialization configuration: $ip_name"
             set_property -dict [list CONFIG.Load_Init_File true CONFIG.Coe_File $expected] $ip
             lab_remove_missing_coe
@@ -40,7 +52,7 @@ proc lab_restore_ram_images {env_dir} {
             # unrelated successful OOC synthesis runs or DCPs.
             generate_target all $ip
         }
-        lab_check_ram_ip $ip
+        lab_check_ram_ip $ip $ip_dir
     }
     lab_remove_missing_coe
 }
