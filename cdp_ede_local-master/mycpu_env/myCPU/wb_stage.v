@@ -47,7 +47,6 @@ always @(posedge clk) begin
     end
 end
 
-// 仅有效且需要写寄存器的指令产生写回；调试接口观察同一笔写回。
 assign rf_we        = ws_valid && ws_gr_we;
 assign ws_to_rf_bus = {rf_we, ws_dest, ws_final_result};
 
