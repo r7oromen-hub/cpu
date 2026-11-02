@@ -50,9 +50,9 @@ always @(posedge clk) begin
     end
 end
 
-// load选择RAM返回的数据，其余写回指令选择EXE计算结果。
 assign ms_final_result = ms_res_from_mem ? data_sram_rdata
                                          : ms_alu_result;
+// 实验二新增：将MEM最终结果前递给ID；load在这里返回内存数据，普通指令返回ALU结果。
 assign ms_to_ds_bus = {ms_valid && ms_gr_we && ms_dest != 5'd0,
                        ms_dest, ms_final_result};
 assign ms_to_ws_bus = {

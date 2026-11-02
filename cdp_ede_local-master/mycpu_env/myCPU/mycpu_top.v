@@ -1,8 +1,7 @@
 `include "mycpu_head.v"
 `timescale 1ns / 1ps
 
-// 五级流水总入口：IF取指、ID译码、EXE执行、MEM访存、WB写回。
-// 各级用 valid 表示内容有效，用 allowin 表示本级可以接收新内容。
+// 实验二新增：FORWARDING参数选择前递或纯阻塞；定义STALL_ONLY时使用纯阻塞。
 module mycpu_top #(
 `ifdef STALL_ONLY
     parameter FORWARDING = 0
@@ -50,6 +49,7 @@ wire [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus;
 wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
+// 实验二新增：EXE/MEM向ID提供结果及目的寄存器，WB继续复用原有写回总线。
 wire [`ES_TO_DS_BUS_WD -1:0] es_to_ds_bus;
 wire [`MS_TO_DS_BUS_WD -1:0] ms_to_ds_bus;
 
@@ -67,6 +67,7 @@ if_stage u_if_stage(
     .inst_sram_rdata (inst_sram_rdata )
 );
 
+// 实验二修改：将模式参数及EXE/MEM反馈总线接入ID，由ID检测RAW并选择最新操作数。
 id_stage #(.FORWARDING(FORWARDING)) u_id_stage(
     .clk             (clk             ),
     .reset           (reset           ),

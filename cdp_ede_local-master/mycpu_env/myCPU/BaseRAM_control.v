@@ -1,6 +1,5 @@
 `timescale 1ns / 1ps
-// Adapter for an asynchronous, active-low, 32-bit external BaseRAM.
-// Its registered read response has the same one-cycle convention as soc_bram.
+// 实验二新增：异步、低有效外部BaseRAM适配模块，读数据寄存后呈现一周期返回接口。
 module BaseRAM_control(
     input wire clk,
     input wire reset,
@@ -16,17 +15,19 @@ module BaseRAM_control(
     output wire base_ram_oe_n,
     output wire base_ram_we_n
 );
-// 外部BaseRAM的控制引脚低电平有效；未选中或复位时关闭访问。
-// 地址去掉低两位字节偏移；写时CPU驱动双向数据线，读时释放。
+// 实验二新增：复位/未选中时关闭访问，分别产生互斥的读写控制。
 wire selected = inst_sram_en && !reset;
 wire writing = selected && |inst_sram_we;
 wire reading = selected && !writing;
+// 实验二新增：字节地址去掉低2位形成字地址；片选/读使能/写使能均转换为低有效。
 assign base_ram_addr = inst_sram_addr[21:2];
 assign base_ram_ce_n = !selected;
 assign base_ram_we_n = !writing;
 assign base_ram_oe_n = !reading;
 assign base_ram_be_n = !selected ? 4'hf : writing ? ~inst_sram_we : 4'h0;
+// 实验二新增：写时驱动双向总线，读时置高阻由RAM驱动；字节使能也转换为低有效。
 assign base_ram_data = writing ? inst_sram_wdata : 32'bz;
+// 实验二新增：读取时在时钟沿保存RAM数据；无读请求时保持输出，复位时输出清零。
 always @(posedge clk) begin
     if (reset)
         inst_sram_rdata <= 32'b0;
