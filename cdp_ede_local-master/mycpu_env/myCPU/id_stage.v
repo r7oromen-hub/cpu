@@ -102,6 +102,7 @@ wire inst_srai_w;
 wire inst_addi_w;
 wire inst_ld_w;
 wire inst_st_w;
+// 实验四新增：六条字节/半字访存指令的识别信号；原有ld.w/st.w继续保留。
 wire inst_ld_b;
 wire inst_ld_h;
 wire inst_ld_bu;
@@ -142,6 +143,9 @@ assign inst_srai_w  = op_31_26_d[6'h00] & op_25_22_d[4'h1] & op_21_20_d[2'h0] & 
 assign inst_addi_w  = op_31_26_d[6'h00] & op_25_22_d[4'ha];
 assign inst_ld_w    = op_31_26_d[6'h0a] & op_25_22_d[4'h2];
 assign inst_st_w    = op_31_26_d[6'h0a] & op_25_22_d[4'h6];
+// 实验四新增：按手册译码六条指令。它们的[31:26]均为0x0a，靠[25:22]区分。
+// 每个op_*_d[...]都是1位匹配结果，两个结果相与表示两个字段必须同时匹配。
+// ld.b/ld.h读取8/16位并符号扩展；ld.bu/ld.hu读取后零扩展；st.b/st.h写低8/16位。
 assign inst_ld_b    = op_31_26_d[6'h0a] & op_25_22_d[4'h0];
 assign inst_ld_h    = op_31_26_d[6'h0a] & op_25_22_d[4'h1];
 assign inst_ld_bu   = op_31_26_d[6'h0a] & op_25_22_d[4'h8];
@@ -161,11 +165,14 @@ assign inst_bltu    = op_31_26_d[6'h1a];
 assign inst_bgeu    = op_31_26_d[6'h1b];
 
 wire inst_cond_branch = inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu;
+// 实验四新增：统一load/store分组，后面的控制由“只支持字”扩展到字/半字/字节。
 wire inst_load = inst_ld_w | inst_ld_b | inst_ld_h | inst_ld_bu | inst_ld_hu;
 wire inst_store = inst_st_w | inst_st_b | inst_st_h;
 
 // 译码结果转换为ALU控制：例如访存也用加法计算基址加偏移。
 wire [11:0] alu_op;
+// 实验四修改：原来的inst_ld_w/inst_st_w改为整组inst_load/inst_store。
+// 所有访存仍复用ALU加法，计算rj + 符号扩展的si12，字节/半字偏移不额外移位。
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_load | inst_store | inst_jirl | inst_bl | inst_pcaddu12i;
 assign alu_op[ 1] = inst_sub_w;
 assign alu_op[ 2] = inst_slt | inst_slti;
@@ -191,6 +198,7 @@ wire        res_from_mem;
 wire        dst_is_r1;
 wire        gr_we;
 wire        mem_we;
+// 实验四新增：2位访问宽度 + 1位load扩展方式，共3位控制信息随流水传递。
 wire [ 1:0] mem_size;
 wire        load_unsigned;
 wire [ 4:0] dest;
@@ -217,25 +225,31 @@ assign br_offs = need_si26 ? {{4{i26[25]}}, i26, 2'b0}
                             : {{14{i16[15]}}, i16, 2'b0};
 assign jirl_offs = {{14{i16[15]}}, i16, 2'b0};
 
+// 实验四修改：所有store都从rd读取待写入内存的数据，原来这里只包含st.w。
 assign src_reg_is_rd = inst_cond_branch | inst_store;
 assign src1_is_pc    = inst_jirl | inst_bl | inst_pcaddu12i;
+// 实验四修改：所有load/store都选立即数作为ALU第二操作数，用于计算访存地址。
 assign src2_is_imm   = inst_slli_w | inst_srli_w | inst_srai_w |
                        inst_addi_w | inst_load   | inst_store   |
                        inst_lu12i_w| inst_jirl   | inst_bl |
                        inst_slti | inst_sltui | need_ui12 | inst_pcaddu12i;
+// 实验四修改：所有load的结果都来自内存；该标记也让新增load参与load-use阻塞。
 assign res_from_mem  = inst_load;
 assign dst_is_r1     = inst_bl;
+// 实验四修改：把inst_ld_w替换为inst_load，新增四条load均需要写回目标寄存器rd。
 assign gr_we         = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                        inst_nor | inst_and | inst_or | inst_xor |
                        inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w |
                        inst_load | inst_jirl | inst_bl | inst_lu12i_w |
                        inst_slti | inst_sltui | inst_andi | inst_ori | inst_xori |
                        inst_sll_w | inst_srl_w | inst_sra_w | inst_pcaddu12i;
+// 实验四修改：st.w/st.b/st.h均允许写内存；实际写哪几个字节由EXE生成掩码。
 assign mem_we        = inst_store;
-// 实验四：访存宽度和是否无符号load随指令一起传到EXE/MEM。
+// 实验四新增：按指令选择字节/半字/字访问，供EXE选择写通道、MEM选择读取宽度。
 assign mem_size      = (inst_ld_b | inst_ld_bu | inst_st_b) ? `MEM_SIZE_BYTE :
                        (inst_ld_h | inst_ld_hu | inst_st_h) ? `MEM_SIZE_HALF :
                                                              `MEM_SIZE_WORD;
+// 实验四新增：只有ld.bu/ld.hu置1；MEM据此零扩展，其余字节/半字load符号扩展。
 assign load_unsigned = inst_ld_bu | inst_ld_hu;
 assign dest          = dst_is_r1 ? 5'd1 : rd;
 
@@ -289,12 +303,14 @@ wire        raw_stall;
 // operands. jirl uses rj for its target even though the ALU uses PC.
 // 只对指令真正读取的源寄存器查相关，避免把立即数字段误认为寄存器。
 // 源寄存器是指令中的角色，不是固定的物理寄存器；jirl仍要读取rj作为跳转基址。
+// 实验四修改：所有load/store都读rj作为基址，纳入原有RAW检测与前递。
 assign src1_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                    inst_nor | inst_and | inst_or | inst_xor |
                    inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w |
                    inst_load | inst_store | inst_jirl | inst_cond_branch |
                    inst_slti | inst_sltui | inst_andi | inst_ori | inst_xori |
                    inst_sll_w | inst_srl_w | inst_sra_w;
+// 实验四修改：所有store还要读rd作为写入数据；load不读第二源，避免立即数假相关。
 assign src2_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                    inst_nor | inst_and | inst_or | inst_xor |
                    inst_store | inst_cond_branch | inst_sll_w | inst_srl_w | inst_sra_w;
@@ -343,6 +359,7 @@ assign br_target = (inst_cond_branch || inst_bl || inst_b)
 
 assign br_bus = {br_taken, br_target};
 // 将当前指令的控制、操作数和PC一起打包，在握手成功时交给EXE。
+// 实验四新增：总线最高3位放mem_size和load_unsigned，与EXE解包顺序保持一致。
 assign ds_to_es_bus = {
     mem_size,
     load_unsigned,

@@ -19,6 +19,7 @@ reg  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
 wire                         ms_ready_go;
 
 wire        ms_res_from_mem;
+// 实验四新增：记录本条load读取字节/半字/字，以及是否进行零扩展。
 wire [ 1:0] ms_mem_size;
 wire        ms_load_unsigned;
 wire        ms_gr_we;
@@ -27,6 +28,7 @@ wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 wire [31:0] ms_final_result;
 
+// 实验四修改：解包EXE传来的新增3位，和本条指令的地址、目的寄存器一起保存。
 assign {
     ms_mem_size,
     ms_load_unsigned,
@@ -55,15 +57,19 @@ always @(posedge clk) begin
 end
 
 // Little endian: address bits 1:0 select byte position in the returned word.
-// 将目标字节或半字移至低位，再按所选数据的符号位做符号扩展或零扩展。
-// 完成扩展后的load结果同时用于WB写回和MEM到ID的前递。
+// 实验四新增：RAM返回32位字，先把目标字节或半字右移到最低位，再截取。
+// {地址低2位,3'b000}表示字节偏移乘8，所以00/01/10/11分别右移0/8/16/24位。
+// 半字访问使用自然对齐地址，其字内偏移为0或2，即右移0或16位。
 wire [31:0] shifted_load = data_sram_rdata >> {ms_alu_result[1:0], 3'b000};
+// 实验四新增：ld.b/ld.h复制所选数据的符号位(bit7/bit15)，ld.bu/ld.hu高位补0。
+// 例如读到字节80：ld.b得到FFFFFF80，ld.bu得到00000080；ld.w保留原32位数据。
 wire [31:0] load_result = ms_mem_size == `MEM_SIZE_BYTE ?
                          {{24{!ms_load_unsigned && shifted_load[7]}}, shifted_load[7:0]} :
                          ms_mem_size == `MEM_SIZE_HALF ?
                          {{16{!ms_load_unsigned && shifted_load[15]}}, shifted_load[15:0]} :
                          data_sram_rdata;
-// load选择RAM返回的数据，其余写回指令选择EXE计算结果。
+// 实验四修改：load原来直接选RAM的32位数据，现在选经过截取和扩展的load_result。
+// 其余写回指令仍选EXE计算结果；下方原有前递和写回总线共用这个最终结果。
 assign ms_final_result = ms_res_from_mem ? load_result
                                          : ms_alu_result;
 assign ms_to_ds_bus = {ms_valid && ms_gr_we && ms_dest != 5'd0,

@@ -22,6 +22,8 @@ reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire                         es_ready_go;
 
 wire        es_res_from_mem;
+// 实验四新增：保存当前EXE指令的访存宽度和load扩展方式，共3位。
+// es_mem_size用于选择写通道；es_load_unsigned继续传给MEM处理读数据。
 wire [ 1:0] es_mem_size;
 wire        es_load_unsigned;
 wire        es_mem_we;
@@ -34,6 +36,7 @@ wire [31:0] es_rkd_value;
 wire [31:0] es_pc;
 wire [31:0] es_alu_result;
 
+// 实验四修改：从ID传来的流水寄存器中解包新增3位，顺序与ID打包一致。
 assign {
     es_mem_size,
     es_load_unsigned,
@@ -77,14 +80,18 @@ alu u_alu(
 // 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
 assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
                         (es_res_from_mem || es_mem_we);
-// 小端序：地址低两位选择字节通道；半字按自然对齐选择低/高两个通道。
-// 写数据复制到各通道，再由字节写使能决定真正写入哪些通道。
+// 实验四新增：store_lanes的每一位控制一个字节，避免st.b/st.h覆盖相邻数据。
+// 小端序：st.b地址低两位00/01/10/11，对应0001/0010/0100/1000。
+// st.h仅考虑自然对齐地址：低两位00写低半字0011，10写高半字1100；st.w写1111。
 wire [3:0] store_lanes = es_mem_size == `MEM_SIZE_BYTE ? (4'b0001 << es_alu_result[1:0]) :
                          es_mem_size == `MEM_SIZE_HALF ? (es_alu_result[1] ? 4'b1100 : 4'b0011) :
                                                         4'b1111;
+// 实验四修改：原来有效store总是写全部4个字节，现在再与选中的通道掩码相与。
 assign data_sram_we    = {4{data_sram_en && es_mem_we}} & store_lanes;
 assign data_sram_addr  = es_alu_result;
 // Replication places the low byte/halfword in every possible selected lane.
+// 实验四修改：st.b将低8位复制4份，st.h将低16位复制2份；st.w仍使用完整32位。
+// 例如待写字节AA复制为AAAAAAAA，配合掩码0010后，只更新内存的第二个字节。
 assign data_sram_wdata = es_mem_size == `MEM_SIZE_BYTE ? {4{es_rkd_value[7:0]}} :
                          es_mem_size == `MEM_SIZE_HALF ? {2{es_rkd_value[15:0]}} :
                                                         es_rkd_value;
@@ -92,6 +99,7 @@ assign data_sram_wdata = es_mem_size == `MEM_SIZE_BYTE ? {4{es_rkd_value[7:0]}} 
 assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
                        es_res_from_mem, es_dest, es_alu_result};
 
+// 实验四修改：将新增3位与地址一起传到MEM，确保MEM使用同一条指令的访存格式。
 assign es_to_ms_bus = {
     es_mem_size,
     es_load_unsigned,
