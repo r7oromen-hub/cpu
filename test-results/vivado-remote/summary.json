@@ -8,6 +8,10 @@
   "ths_ns": 0.0,
   "wpws_ns": 4.5,
   "tpws_ns": 0.0,
+  "drc_violations": 0,
+  "drc_errors": 0,
+  "drc_critical_warnings": 0,
+  "drc_reviewed_warnings": {},
   "input_clock_mhz": 50.0,
   "cpu_clock_mhz": 50.0,
   "timer_clock_mhz": 100.0,
@@ -27,10 +31,9 @@
     "ex2_obj",
     "ex3_obj"
   ],
-  "drc_violations": 0,
   "bitstream": "build\\vivado-remote\\loongson.runs\\impl_1\\looongson_remote_top.bit",
   "bitstream_bytes": 4775511,
-  "bitstream_sha256": "e888286af3afe43518bf58098271bb1ff50cb4518d90fdb1b27e6f92044eef43",
+  "bitstream_sha256": "c9771311d0b0e3955305f39204adb848d50925b96d3a5d500a22016c13fcb485",
   "input_sha256": {
     "build\\vivado-remote\\ip\\clk_pll\\clk_pll.xci": "6286a8a82b8709b91fa10fa6d57ca075d7d4db578c51f648192bce77a6bc99dc",
     "build\\vivado-remote\\ip\\data_ram\\data_ram.xci": "95056558eedde430a4ac6c952edc2994330c22339743527a5eabe0a80b292d25",
