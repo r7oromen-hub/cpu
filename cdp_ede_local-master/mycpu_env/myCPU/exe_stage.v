@@ -75,9 +75,6 @@ alu u_alu(
     .alu_result (es_alu_result )
 );
 
-// Only the transfer edge may issue a memory operation. This prevents repeated
-// stores if a later extension adds downstream backpressure.
-// 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
 assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
                         (es_res_from_mem || es_mem_we);
 // 实验四新增：store_lanes的每一位控制一个字节，避免st.b/st.h覆盖相邻数据。
@@ -89,13 +86,11 @@ wire [3:0] store_lanes = es_mem_size == `MEM_SIZE_BYTE ? (4'b0001 << es_alu_resu
 // 实验四修改：原来有效store总是写全部4个字节，现在再与选中的通道掩码相与。
 assign data_sram_we    = {4{data_sram_en && es_mem_we}} & store_lanes;
 assign data_sram_addr  = es_alu_result;
-// Replication places the low byte/halfword in every possible selected lane.
 // 实验四修改：st.b将低8位复制4份，st.h将低16位复制2份；st.w仍使用完整32位。
 // 例如待写字节AA复制为AAAAAAAA，配合掩码0010后，只更新内存的第二个字节。
 assign data_sram_wdata = es_mem_size == `MEM_SIZE_BYTE ? {4{es_rkd_value[7:0]}} :
                          es_mem_size == `MEM_SIZE_HALF ? {2{es_rkd_value[15:0]}} :
                                                         es_rkd_value;
-// 向ID提供有效写回、目的寄存器和结果；附带结果是否尚不可用的信息。
 assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
                        es_res_from_mem, es_dest, es_alu_result};
 

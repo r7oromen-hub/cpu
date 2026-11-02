@@ -56,7 +56,6 @@ always @(posedge clk) begin
     end
 end
 
-// Little endian: address bits 1:0 select byte position in the returned word.
 // 实验四新增：RAM返回32位字，先把目标字节或半字右移到最低位，再截取。
 // {地址低2位,3'b000}表示字节偏移乘8，所以00/01/10/11分别右移0/8/16/24位。
 // 半字访问使用自然对齐地址，其字内偏移为0或2，即右移0或16位。

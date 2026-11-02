@@ -22,11 +22,8 @@ wire                         ds_ready_go;
 wire [31:0]                  ds_inst;
 wire [31:0]                  ds_pc;
 
-// 时钟沿保存IF送来的指令和PC；下面的字段拆分和译码是组合逻辑。
 assign {ds_inst, ds_pc} = fs_to_ds_bus_r;
 
-// ready_go：当前指令是否准备好前进；allowin：本级是否能接收新指令。
-// 本级为空，或本级可以前进且EXE可以接收时，ID才能接收IF的新内容。
 assign ds_ready_go    = !raw_stall;
 assign ds_allowin     = !ds_valid || (ds_ready_go && es_allowin);
 assign ds_to_es_valid = ds_valid && ds_ready_go;
@@ -56,7 +53,6 @@ wire [19:0] i20;
 wire [15:0] i16;
 wire [25:0] i26;
 
-// 同一段指令编码在不同格式中含义可能不同；rd不总是目的寄存器。
 assign op_31_26 = ds_inst[31:26];
 assign op_25_22 = ds_inst[25:22];
 assign op_21_20 = ds_inst[21:20];
@@ -74,7 +70,6 @@ wire [15:0] op_25_22_d;
 wire [ 3:0] op_21_20_d;
 wire [31:0] op_19_15_d;
 
-// 译码器将操作码字段展开，再由 inst_* 信号组合判断具体指令。
 decoder_6_64 u_dec0(.in(op_31_26), .out(op_31_26_d));
 decoder_4_16 u_dec1(.in(op_25_22), .out(op_25_22_d));
 decoder_2_4  u_dec2(.in(op_21_20), .out(op_21_20_d));
@@ -169,7 +164,6 @@ wire inst_cond_branch = inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | 
 wire inst_load = inst_ld_w | inst_ld_b | inst_ld_h | inst_ld_bu | inst_ld_hu;
 wire inst_store = inst_st_w | inst_st_b | inst_st_h;
 
-// 译码结果转换为ALU控制：例如访存也用加法计算基址加偏移。
 wire [11:0] alu_op;
 // 实验四修改：原来的inst_ld_w/inst_st_w改为整组inst_load/inst_store。
 // 所有访存仍复用ALU加法，计算rj + 符号扩展的si12，字节/半字偏移不额外移位。
@@ -207,14 +201,11 @@ wire [31:0] br_offs;
 wire [31:0] jirl_offs;
 
 assign need_ui5  = inst_slli_w | inst_srli_w | inst_srai_w;
-// 实验三：andi/ori/xori使用零扩展立即数，pcaddu12i以指令PC为基址。
 assign need_ui12 = inst_andi | inst_ori | inst_xori;
 assign need_si20 = inst_lu12i_w | inst_pcaddu12i;
 assign need_si26 = inst_b | inst_bl;
 assign src2_is_4 = inst_jirl | inst_bl;
 
-// 按指令选择立即数格式：逻辑立即数零扩展；addi和sltui等的i12符号扩展。
-// sltui的无符号指比较方式，并不表示立即数零扩展。
 assign imm = src2_is_4 ? 32'd4 :
              need_si20 ? {i20, 12'b0} :
              need_ui5  ? {27'b0, rk} :
@@ -261,8 +252,6 @@ wire [31:0] rf_rdata1;
 wire [ 4:0] rf_raddr2;
 wire [31:0] rf_rdata2;
 
-// WB通过写端口更新寄存器堆；两个读地址由当前指令组合产生。
-// 第二读口在分支/store时读取rd字段，其余使用rk字段。
 assign {rf_we, rf_waddr, rf_wdata} = ws_to_rf_bus;
 assign rf_raddr1 = rj;
 assign rf_raddr2 = src_reg_is_rd ? rd : rk;
@@ -299,10 +288,6 @@ wire [31:0] ms_result;
 wire        es_hit1, es_hit2, ms_hit1, ms_hit2, ws_hit1, ws_hit2;
 wire        raw_stall;
 
-// Immediate fields overlap rk/rj encodings; compare only genuinely read
-// operands. jirl uses rj for its target even though the ALU uses PC.
-// 只对指令真正读取的源寄存器查相关，避免把立即数字段误认为寄存器。
-// 源寄存器是指令中的角色，不是固定的物理寄存器；jirl仍要读取rj作为跳转基址。
 // 实验四修改：所有load/store都读rj作为基址，纳入原有RAW检测与前递。
 assign src1_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                    inst_nor | inst_and | inst_or | inst_xor |
@@ -316,23 +301,16 @@ assign src2_used = inst_add_w | inst_sub_w | inst_slt | inst_sltu |
                    inst_store | inst_cond_branch | inst_sll_w | inst_srl_w | inst_sra_w;
 assign {es_writes, es_load, es_dest, es_result} = es_to_ds_bus;
 assign {ms_writes, ms_dest, ms_result} = ms_to_ds_bus;
-// 将ID正在读取的寄存器编号，与各级有效写回目的寄存器比较；r0不构成相关。
 assign es_hit1 = src1_used && rf_raddr1 != 0 && es_writes && rf_raddr1 == es_dest;
 assign es_hit2 = src2_used && rf_raddr2 != 0 && es_writes && rf_raddr2 == es_dest;
 assign ms_hit1 = src1_used && rf_raddr1 != 0 && ms_writes && rf_raddr1 == ms_dest;
 assign ms_hit2 = src2_used && rf_raddr2 != 0 && ms_writes && rf_raddr2 == ms_dest;
 assign ws_hit1 = src1_used && rf_raddr1 != 0 && rf_we && rf_waddr != 0 && rf_raddr1 == rf_waddr;
 assign ws_hit2 = src2_used && rf_raddr2 != 0 && rf_we && rf_waddr != 0 && rf_raddr2 == rf_waddr;
-// 无前递时等待所有相关写回；有前递时，仅在最新生产者结果未就绪时等待。
-// EXE中的load只有地址，读取数据要到MEM级才可用。
 assign raw_stall = ds_valid && (FORWARDING ?
                    (es_load && (es_hit1 || es_hit2)) :
                    (es_hit1 || es_hit2 || ms_hit1 || ms_hit2 || ws_hit1 || ws_hit2));
 
-// Closest (youngest) producer wins. An EXE load hit stalls rather than using
-// an older MEM/WB value of the same register.
-// 前递选择最近的有效生产者：EXE优先于MEM，MEM优先于WB，最后读寄存器堆。
-// 若EXE结果未就绪，raw_stall禁止指令发射，不能使用较旧的同名结果。
 assign rj_value  = !FORWARDING ? rf_rdata1 :
                    es_hit1 ? es_result : ms_hit1 ? ms_result :
                    ws_hit1 ? rf_wdata : rf_rdata1;
@@ -342,11 +320,9 @@ assign rkd_value = !FORWARDING ? rf_rdata2 :
 assign alu_src1  = src1_is_pc ? ds_pc : rj_value;
 assign alu_src2  = src2_is_imm ? imm : rkd_value;
 
-// 分支比较要使用前递后的操作数；signed和unsigned比较分别处理。
 assign rj_eq_rd = (rj_value == rkd_value);
 assign rj_lt_rd = ($signed(rj_value) < $signed(rkd_value));
 assign rj_ltu_rd = (rj_value < rkd_value);
-// 分支比较使用前递后的值；只有本指令真正向EXE发射时才重定向PC。
 assign br_taken = ((inst_beq &&  rj_eq_rd) ||
                    (inst_bne && !rj_eq_rd) ||
                    (inst_blt && rj_lt_rd) || (inst_bge && !rj_lt_rd) ||
@@ -358,7 +334,6 @@ assign br_target = (inst_cond_branch || inst_bl || inst_b)
                  : rj_value + jirl_offs;
 
 assign br_bus = {br_taken, br_target};
-// 将当前指令的控制、操作数和PC一起打包，在握手成功时交给EXE。
 // 实验四新增：总线最高3位放mem_size和load_unsigned，与EXE解包顺序保持一致。
 assign ds_to_es_bus = {
     mem_size,
