@@ -20,6 +20,7 @@ module exe_stage(
 reg                          es_valid;
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire                         es_ready_go;
+// 实验五新增：标记本条除法是否已启动，并接收本条指令的乘法/除法控制字段。
 reg                          div_started;
 wire [2:0]                   es_mul_op;
 wire [2:0]                   es_div_op;
@@ -36,6 +37,7 @@ wire [31:0] es_alu_src2;
 wire [31:0] es_rkd_value;
 wire [31:0] es_pc;
 wire [31:0] es_alu_result;
+// 实验五新增：统一选择ALU、乘积、商或余数作为EXE最终结果。
 wire [31:0] es_final_result;
 wire div_start;
 wire div_busy;
@@ -43,6 +45,7 @@ wire div_done;
 wire [31:0] div_quotient;
 wire [31:0] div_remainder;
 
+// 实验五修改：从ID->EXE总线最高6位取出mul_op/div_op，原有字段顺序不变。
 assign {
     es_mul_op,
     es_div_op,
@@ -59,13 +62,12 @@ assign {
     es_pc
 } = ds_to_es_bus_r;
 
-// div_started distinguishes this instruction from the previous divider's
-// sticky done. A newly arrived division cannot consume the previous result.
-// 实验五：除法跨多个周期；当前除法启动并完成之后EXE才能向后发射。
-// div_started区分当前指令与上一次保留的done，避免误用旧结果。
+// 实验五修改：原ready_go恒为1；现在除法必须“本条已启动且完成”才允许离开EXE。
+// div_started避免新除法误用上一条除法保留的done和结果；乘法仍在EXE单周期完成。
 assign es_ready_go    = !es_div_op[2] || (div_started && div_done);
 assign es_allowin     = !es_valid || (es_ready_go && ms_allowin);
 assign es_to_ms_valid = es_valid && es_ready_go;
+// 实验五新增：只有有效且尚未启动的除法发出start，避免等待期间反复启动。
 assign div_start = !reset && es_valid && es_div_op[2] && !div_started;
 
 always @(posedge clk) begin
@@ -81,6 +83,8 @@ always @(posedge clk) begin
     end
 end
 
+// 实验五新增：换入下一条指令或复位时清除启动标记，接受start后置1。
+// 下游阻塞时保持该标记，即使除法已完成，也不能重复发起请求。
 always @(posedge clk) begin
     if (reset)
         div_started <= 1'b0;
@@ -97,43 +101,41 @@ alu u_alu(
     .alu_result (es_alu_result )
 );
 
-// Sign-extend for mulh.w and zero-extend for mulh.wu. Both unsigned 32-bit
-// values fit in signed 33 bits, so one multiply implements all three opcodes.
-// 用33位扩展统一有符号/无符号乘法；低位乘法取低32位，高位乘法取[63:32]。
+// 实验五新增：使用一个33x33位有符号乘法器兼容三种乘法。
+// mulh.w符号扩展，mulh.wu高位补0；32位无符号数补0后可在33位有符号数中表示。
 wire signed [32:0] mul_src1 = {(!es_mul_op[2] && es_alu_src1[31]), es_alu_src1};
 wire signed [32:0] mul_src2 = {(!es_mul_op[2] && es_alu_src2[31]), es_alu_src2};
 wire signed [65:0] mul_product = mul_src1 * mul_src2;
+// 实验五新增：mul.w取低32位，另两条取高32位；低32位不受有/无符号解释影响。
 wire [31:0] mul_result = es_mul_op[0] ? mul_product[31:0] : mul_product[63:32];
+// 实验五新增：独立迭代除法器跨周期计算；商和余数同时输出，由指令选择。
 iterative_divider u_divider(
     .clk(clk), .reset(reset), .start(div_start), .signed_mode(es_div_op[1]),
     .dividend(es_alu_src1), .divisor(es_alu_src2), .busy(div_busy),
     .done(div_done), .quotient(div_quotient), .remainder(div_remainder)
 );
+// 实验五新增：|es_mul_op为归约或，任一乘法位为1就选择乘积；否则选择商/余数或ALU。
 assign es_final_result = |es_mul_op ? mul_result :
                          es_div_op[2] ? (es_div_op[0] ? div_remainder : div_quotient) :
                                         es_alu_result;
 
-// Only the transfer edge may issue a memory operation. This prevents repeated
-// stores if a later extension adds downstream backpressure.
-// 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
 assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
                         (es_res_from_mem || es_mem_we);
-// 小端序：地址低两位选择字节通道；半字按自然对齐选择低/高两个通道。
-// 写数据复制到各通道，再由字节写使能决定真正写入哪些通道。
 wire [3:0] store_lanes = es_mem_size == `MEM_SIZE_BYTE ? (4'b0001 << es_alu_result[1:0]) :
                          es_mem_size == `MEM_SIZE_HALF ? (es_alu_result[1] ? 4'b1100 : 4'b0011) :
                                                         4'b1111;
 assign data_sram_we    = {4{data_sram_en && es_mem_we}} & store_lanes;
 assign data_sram_addr  = es_alu_result;
-// Replication places the low byte/halfword in every possible selected lane.
 assign data_sram_wdata = es_mem_size == `MEM_SIZE_BYTE ? {4{es_rkd_value[7:0]}} :
                          es_mem_size == `MEM_SIZE_HALF ? {2{es_rkd_value[15:0]}} :
                                                         es_rkd_value;
-// 向ID提供有效写回、目的寄存器和结果；附带结果是否尚不可用的信息。
+// 实验五修改：前递数据由单独ALU结果改为最终结果，新增未完成除法的不可用标记。
+// 除法完成后该标记解除，ID才能前递使用本条指令的商或余数。
 assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
                        es_res_from_mem || (es_div_op[2] && !es_ready_go),
                        es_dest, es_final_result};
 
+// 实验五修改：原es_alu_result字段改传es_final_result，MEM/WB可沿用原有写回通路。
 assign es_to_ms_bus = {
     es_mem_size,
     es_load_unsigned,

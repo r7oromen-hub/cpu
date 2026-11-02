@@ -3,6 +3,7 @@
 
 `define BR_BUS_WD        33
 `define FS_TO_DS_BUS_WD  64
+// 实验五修改：新增mul_op(3位)+div_op(3位)，ID->EXE由151位扩展为157位。
 `define DS_TO_ES_BUS_WD 157
 `define ES_TO_MS_BUS_WD  74
 `define MS_TO_WS_BUS_WD  70

@@ -1,6 +1,4 @@
 `timescale 1ns / 1ps
-// Adapter for an asynchronous, active-low, 32-bit external BaseRAM.
-// Its registered read response has the same one-cycle convention as soc_bram.
 module BaseRAM_control(
     input wire clk,
     input wire reset,
@@ -16,8 +14,6 @@ module BaseRAM_control(
     output wire base_ram_oe_n,
     output wire base_ram_we_n
 );
-// 外部BaseRAM的控制引脚低电平有效；未选中或复位时关闭访问。
-// 地址去掉低两位字节偏移；写时CPU驱动双向数据线，读时释放。
 wire selected = inst_sram_en && !reset;
 wire writing = selected && |inst_sram_we;
 wire reading = selected && !writing;
