@@ -67,6 +67,7 @@ alu u_alu(
     .alu_result (es_alu_result )
 );
 
+// 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
 assign data_sram_en    = es_valid && (es_res_from_mem || es_mem_we);
 assign data_sram_we    = {4{es_valid && es_mem_we}};
 assign data_sram_addr  = es_alu_result;

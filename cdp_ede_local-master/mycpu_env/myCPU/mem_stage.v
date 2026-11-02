@@ -49,6 +49,7 @@ always @(posedge clk) begin
     end
 end
 
+// load选择RAM返回的数据，其余写回指令选择EXE计算结果。
 assign ms_final_result = ms_res_from_mem ? data_sram_rdata
                                          : ms_alu_result;
 assign ms_to_ws_bus = {
