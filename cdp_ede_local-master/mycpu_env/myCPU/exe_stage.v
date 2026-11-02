@@ -16,6 +16,7 @@ module exe_stage(
     output wire [31:0]                  data_sram_wdata
 );
 
+// 实验一：独立EXE级锁存ID的控制和操作数，ALU从这些流水寄存器取数。
 reg                          es_valid;
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire                         es_ready_go;
@@ -60,6 +61,7 @@ always @(posedge clk) begin
     end
 end
 
+// 实验一：运算在EXE完成；load/store复用加法计算基址加偏移。
 alu u_alu(
     .alu_op     (es_alu_op     ),
     .alu_src1   (es_alu_src1   ),
@@ -67,12 +69,13 @@ alu u_alu(
     .alu_result (es_alu_result )
 );
 
-// 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
+// 实验一：有效load/store才访问数据RAM，st.w写全32位；同步读数据在MEM级使用。
 assign data_sram_en    = es_valid && (es_res_from_mem || es_mem_we);
 assign data_sram_we    = {4{es_valid && es_mem_we}};
 assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = es_rkd_value;
 
+// 实验一：ALU结果与目的寄存器、PC及写回控制一起进入MEM，避免不同指令信息混用。
 assign es_to_ms_bus = {
     es_res_from_mem,
     es_gr_we,

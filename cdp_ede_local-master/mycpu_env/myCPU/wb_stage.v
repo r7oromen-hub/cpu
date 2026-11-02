@@ -14,6 +14,7 @@ module wb_stage(
     output wire [31:0]                  debug_wb_rf_wdata
 );
 
+// 实验一：增加WB级保存最终结果、目的寄存器和PC，写回与取指/译码分属不同指令。
 reg                          ws_valid;
 reg  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 wire                         ws_ready_go;
@@ -47,10 +48,11 @@ always @(posedge clk) begin
     end
 end
 
-// 仅有效且需要写寄存器的指令产生写回；调试接口观察同一笔写回。
+// 实验一：只有有效且要求写寄存器的WB指令产生写使能；结果通过总线返回ID。
 assign rf_we        = ws_valid && ws_gr_we;
 assign ws_to_rf_bus = {rf_we, ws_dest, ws_final_result};
 
+// 实验一：调试接口统一观察WB提交的PC、目的寄存器和数据，供逐条写回对拍。
 assign debug_wb_pc       = ws_pc;
 assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = ws_dest;

@@ -15,6 +15,7 @@ module if_stage(
     input  wire [31:0]                  inst_sram_rdata
 );
 
+// 实验一：独立IF级保存有效位和PC，使不同指令可以同时处于不同流水级。
 reg         fs_valid;
 reg  [31:0] fs_pc;
 wire        fs_ready_go;
@@ -27,12 +28,13 @@ wire [31:0] br_target;
 
 assign {br_taken, br_target} = br_bus;
 
+// 实验一：本级为空或指令可交给ID时才允许更新，复位期间不产生有效取指。
 assign to_fs_valid    = ~reset;
 assign fs_ready_go    = 1'b1;
 assign fs_allowin     = !fs_valid || (fs_ready_go && ds_allowin);
 assign fs_to_ds_valid = fs_valid && fs_ready_go;
 
-// 普通情况下 PC 加4；分支成立时改取目标地址。
+// 实验一：普通取指PC加4；ID判定跳转后，用目标地址替换顺序地址。
 assign seq_pc = fs_pc + 32'd4;
 assign nextpc = br_taken ? br_target : seq_pc;
 
@@ -47,6 +49,7 @@ end
 
 always @(posedge clk) begin
     if (reset) begin
+        // 实验一：复位PC设为启动地址减4，首次顺序取指得到0x1c000000。
         fs_pc <= 32'h1bff_fffc;
     end
     else if (to_fs_valid && fs_allowin) begin
@@ -54,8 +57,8 @@ always @(posedge clk) begin
     end
 end
 
-// 同步指令RAM使用 nextpc 发起读取；返回指令与时钟沿更新的 fs_pc 对齐。
-// ID不能接收时关闭片选并保持PC，避免指令和地址错位。
+// 实验一：同步指令RAM用nextpc发起请求，返回指令与同一时钟沿更新的fs_pc配对。
+// ID不能接收时关闭片选并保持PC，避免返回指令与PC错位；指令RAM始终只读。
 assign fs_to_ds_bus    = {inst_sram_rdata, fs_pc};
 assign inst_sram_en    = to_fs_valid && fs_allowin;
 assign inst_sram_we    = 4'b0000;

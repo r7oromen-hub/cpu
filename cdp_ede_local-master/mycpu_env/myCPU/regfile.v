@@ -16,7 +16,7 @@ module regfile(
 reg [31:0] rf[31:0];
 
 //WRITE
-// 寄存器堆在时钟沿写入，读端口按地址提供数据；r0始终读零且不能写入。
+// 实验一：写入增加waddr非零判断，拒绝改写r0；两个读口对r0固定返回0。
 always @(posedge clk) begin
     if (we && waddr != 5'b0) rf[waddr] <= wdata;
 end

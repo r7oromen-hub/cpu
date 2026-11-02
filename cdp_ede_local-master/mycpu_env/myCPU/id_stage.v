@@ -1,6 +1,7 @@
 `include "mycpu_head.v"
 `timescale 1ns / 1ps
 
+// 实验一：将基础20条指令的译码、读寄存器和分支判断放入独立ID级。
 module id_stage(
     input  wire                         clk,
     input  wire                         reset,
@@ -20,12 +21,11 @@ wire                         ds_ready_go;
 wire [31:0]                  ds_inst;
 wire [31:0]                  ds_pc;
 
-// 时钟沿保存IF送来的指令和PC；下面的字段拆分和译码是组合逻辑。
+// 实验一：译码使用IF->ID流水寄存器中的指令与PC，不直接使用正在取回的新指令。
 assign {ds_inst, ds_pc} = fs_to_ds_bus_r;
 
-// ready_go：当前指令是否准备好前进；allowin：本级是否能接收新指令。
-// 本级为空，或本级可以前进且EXE可以接收时，ID才能接收IF的新内容。
-// 实验一不检测数据相关，也不插入气泡；测试程序用空操作避开冲突。
+// 实验一：ID默认准备好前进，不检测数据相关；测试程序用空操作规避冲突。
+// allowin使本级为空或能够交给EXE时接收下一条，握手成功才锁存总线。
 assign ds_ready_go    = 1'b1;
 assign ds_allowin     = !ds_valid || (ds_ready_go && es_allowin);
 assign ds_to_es_valid = ds_valid && ds_ready_go;
@@ -55,7 +55,7 @@ wire [19:0] i20;
 wire [15:0] i16;
 wire [25:0] i26;
 
-// 同一段指令编码在不同格式中含义可能不同；rd不总是目的寄存器。
+// 实验一：将单周期译码字段与基础指令控制搬到ID；rd在store/条件分支中是源寄存器。
 assign op_31_26 = ds_inst[31:26];
 assign op_25_22 = ds_inst[25:22];
 assign op_21_20 = ds_inst[21:20];
@@ -73,7 +73,6 @@ wire [15:0] op_25_22_d;
 wire [ 3:0] op_21_20_d;
 wire [31:0] op_19_15_d;
 
-// 译码器将操作码字段展开，再由 inst_* 信号组合判断具体指令。
 decoder_6_64 u_dec0(.in(op_31_26), .out(op_31_26_d));
 decoder_4_16 u_dec1(.in(op_25_22), .out(op_25_22_d));
 decoder_2_4  u_dec2(.in(op_21_20), .out(op_21_20_d));
@@ -121,7 +120,6 @@ assign inst_beq     = op_31_26_d[6'h16];
 assign inst_bne     = op_31_26_d[6'h17];
 assign inst_lu12i_w = op_31_26_d[6'h05] & ~ds_inst[25];
 
-// 译码结果转换为ALU控制：例如访存也用加法计算基址加偏移。
 wire [11:0] alu_op;
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | inst_bl;
 assign alu_op[ 1] = inst_sub_w;
@@ -157,7 +155,7 @@ assign need_si20 = inst_lu12i_w;
 assign need_si26 = inst_b | inst_bl;
 assign src2_is_4 = inst_jirl | inst_bl;
 
-// 按指令选择立即数格式：移位量零扩展，普通i12符号扩展，链接地址使用4。
+// 实验一：在ID准备ALU操作数；移位量零扩展，普通i12符号扩展，链接地址使用PC+4。
 assign imm = src2_is_4 ? 32'd4 :
              need_si20 ? {i20, 12'b0} :
              need_ui5  ? {27'b0, rk} :
@@ -186,8 +184,7 @@ wire [31:0] rf_rdata1;
 wire [ 4:0] rf_raddr2;
 wire [31:0] rf_rdata2;
 
-// WB通过写端口更新寄存器堆；两个读地址由当前指令组合产生。
-// 第二读口在分支/store时读取rd字段，其余使用rk字段。
+// 实验一：寄存器堆留在ID，写端口改由WB总线驱动，读端口供当前指令使用。
 assign {rf_we, rf_waddr, rf_wdata} = ws_to_rf_bus;
 assign rf_raddr1 = rj;
 assign rf_raddr2 = src_reg_is_rd ? rd : rk;
@@ -217,7 +214,7 @@ assign alu_src1  = src1_is_pc ? ds_pc : rj_value;
 assign alu_src2  = src2_is_imm ? imm : rkd_value;
 
 assign rj_eq_rd = (rj_value == rkd_value);
-// 本实验不清空错误路径，测试程序负责规避控制相关。
+// 实验一：在ID产生跳转标志与目标；本阶段不清空错误路径，由测试程序规避控制冲突。
 assign br_taken = ((inst_beq &&  rj_eq_rd) ||
                    (inst_bne && !rj_eq_rd) ||
                     inst_jirl || inst_bl || inst_b) && ds_valid;
@@ -226,7 +223,7 @@ assign br_target = (inst_beq || inst_bne || inst_bl || inst_b)
                  : rj_value + jirl_offs;
 
 assign br_bus = {br_taken, br_target};
-// 将当前指令的控制、操作数和PC一起打包，在握手成功时交给EXE。
+// 实验一：将控制位、两个ALU操作数、store数据和本条PC打包交给EXE。
 assign ds_to_es_bus = {
     res_from_mem,
     mem_we,

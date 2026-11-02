@@ -1,8 +1,8 @@
 `include "mycpu_head.v"
 `timescale 1ns / 1ps
 
-// 五级流水总入口：IF取指、ID译码、EXE执行、MEM访存、WB写回。
-// 各级用 valid 表示内容有效，用 allowin 表示本级可以接收新内容。
+// 实验一：将单周期数据通路划分成IF/ID/EXE/MEM/WB五级，并在顶层连接各级。
+// 本仓库baseline已含该实现；这些注释说明实验一设计，并不表示本次新增功能。
 module mycpu_top(
     input  wire        clk,
     input  wire        resetn,
@@ -30,6 +30,8 @@ always @(posedge clk) begin
     reset <= ~resetn;
 end
 
+// 实验一：增加级间握手和数据总线。valid表示本级有有效指令，allowin表示下级可接收。
+// PC、目的寄存器和控制位随指令逐级传递，WB写回总线回到ID中的寄存器堆。
 wire                         fs_to_ds_valid;
 wire                         ds_to_es_valid;
 wire                         es_to_ms_valid;

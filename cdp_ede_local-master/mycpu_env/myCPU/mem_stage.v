@@ -13,6 +13,7 @@ module mem_stage(
     output wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus
 );
 
+// 实验一：增加MEM级，将EXE的结果和控制保持到同步数据RAM返回数据。
 reg                          ms_valid;
 reg  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
 wire                         ms_ready_go;
@@ -49,7 +50,7 @@ always @(posedge clk) begin
     end
 end
 
-// load选择RAM返回的数据，其余写回指令选择EXE计算结果。
+// 实验一：load选择同步RAM返回值，其余指令选择ALU结果，再与写回控制一起交给WB。
 assign ms_final_result = ms_res_from_mem ? data_sram_rdata
                                          : ms_alu_result;
 assign ms_to_ws_bus = {

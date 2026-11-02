@@ -47,13 +47,16 @@ wire [31:0] sra_result;
 
 assign add_sub_result = op_sub ? (alu_src1 - alu_src2)
                                : (alu_src1 + alu_src2);
+// 实验一：明确有符号/无符号比较类型，结果只有低位表示是否小于。
 assign slt_result      = {31'b0, $signed(alu_src1) < $signed(alu_src2)};
 assign sltu_result     = {31'b0, alu_src1 < alu_src2};
 assign and_result      = alu_src1 & alu_src2;
 assign nor_result      = ~(alu_src1 | alu_src2);
+// 实验一：OR直接对两个输入按位或，避免结果信号自引用形成组合环。
 assign or_result       = alu_src1 | alu_src2;
 assign xor_result      = alu_src1 ^ alu_src2;
 assign lui_result      = alu_src2;
+// 实验一：统一由src1提供被移位数，src2低5位提供位数；算术右移须按有符号数补符号位。
 assign sll_result      = alu_src1 << alu_src2[4:0];
 assign srl_result      = alu_src1 >> alu_src2[4:0];
 assign sra_result      = $signed(alu_src1) >>> alu_src2[4:0];
