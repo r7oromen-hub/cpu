@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "board_test": "NOT_RUN",
+  "online_test": "NOT_RUN",
+  "wns_ns": 5.313,
+  "tns_ns": 0.0,
+  "whs_ns": 0.091,
+  "ths_ns": 0.0,
+  "wpws_ns": 4.5,
+  "tpws_ns": 0.0,
+  "drc_violations": 12,
+  "drc_errors": 0,
+  "drc_critical_warnings": 0,
+  "drc_reviewed_warnings": {
+    "DPIP-1": 4,
+    "DPOP-1": 4,
+    "DPOP-2": 4
+  },
+  "input_clock_mhz": 50.0,
+  "cpu_clock_mhz": 25.0,
+  "timer_clock_mhz": 100.0,
+  "ram_images": {
+    "inst_ram": {
+      "selected_coe_sha256": "496a19f493b1aeba769a35761d71bd7ccb439c3f532f7f3a24be253c2ff1381a",
+      "generated_mif_sha256": "db7e1760b3fd8373a9f65886a6185ceb1038a47369e7541fb43ed88897960e66",
+      "words": 131185
+    },
+    "data_ram": {
+      "selected_coe_sha256": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2",
+      "generated_mif_sha256": "54e1f555d80aaeeeac4552dbbdd05e67db5d70ac301df9a019afc9e90f64e92e",
+      "words": 1
+    }
+  },
+  "selected_images": [
+    "ex7_obj"
+  ],
+  "bitstream": "build\\vivado-remote\\loongson.runs\\impl_1\\looongson_remote_top.bit",
+  "bitstream_bytes": 4514019,
+  "bitstream_sha256": "b2f8e7049fbe67ff19923000c5c6bd537a65827e952aec8720a8354b59be898e",
+  "input_sha256": {
+    "build\\vivado-remote\\ip\\clk_pll\\clk_pll.xci": "45583900b80bd8bb234b8bd915f35867315cfb33b4cf76ab9cf7ead69826c85b",
+    "build\\vivado-remote\\ip\\data_ram\\data_ram.xci": "95056558eedde430a4ac6c952edc2994330c22339743527a5eabe0a80b292d25",
+    "build\\vivado-remote\\ip\\inst_ram\\inst_ram.xci": "9376e8232f13ce7002eca63343637424aadae7278ab71a118653d2d19ae94095",
+    "cdp_ede_local-master\\mycpu_env\\func\\obj\\data_ram.coe": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2",
+    "cdp_ede_local-master\\mycpu_env\\func\\obj\\inst_ram.coe": "496a19f493b1aeba769a35761d71bd7ccb439c3f532f7f3a24be253c2ff1381a",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\alu.v": "a34c1f1a18387c8969d4cc0e98839c37b155ffeef1a685df854e1a301c09d2da",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\BaseRAM_control.v": "1a6c763fcec8fa3caead74eb75d22e314711d44ee494fa3f57d0c2585ea92ca6",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\exe_stage.v": "088b173c5a26f1414c603bb02e07c9f7e1cbbd750d0c6398547224d11066e1a7",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\id_stage.v": "94fbac7994403b1834d4a707cfee44bda6f541f2d89161bd815d8c01455a9b67",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\if_stage.v": "ebbb009a83c40a395b6ba5e47b1a2624fee944b4f50fbaa7aecb40337dca8922",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\iterative_divider.v": "3540d5b3d82099b1a5fcce6c81d3646bb44f0a221a8fae87be2dd83445c1ed82",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\mem_stage.v": "a081da3ef246a5954f83b5029d9e41b7378c298e1e214f1af44a8c40153403f0",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\mycpu_head.v": "ee76262bd202bf77e6043965659a7ecb7fa4b314a3e2b4272e330c933d4d8f65",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\mycpu_top.v": "9e5474e062069a9e148772ab162f5567612d4ebee5450e8a6f3fef44c3415574",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\regfile.v": "a89d8da56fe5fc87121da7fc5b0e0752e02949d93af2a1960be9b5c5ead62f79",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\tools.v": "f85397488fac8c80311eeb43d597cc00f8e9b60290f3d6a96e01a8923d05a6eb",
+    "cdp_ede_local-master\\mycpu_env\\myCPU\\wb_stage.v": "f79eaf531536857b1577d1c3873fe69c67e753adc6f26a9c92062c243aa6b21f",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\BRIDGE\\bridge_1x2.v": "e0cd8ad750d21c0dc4c8ab545fbc7ed65b203b5e07f278f4a240b3ab9c7d4609",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\CONFREG\\confreg.v": "53f899bfa0b6794c2dc12b981addf0a22c7971466ea5a28289444b5672072ea4",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\soc_lite_top.v": "b1d389fd77e62367a129056a3ad81893e8eb27901dd280717359e222d9fb14b1",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\xilinx_ip\\clk_pll\\clk_pll.xci": "55cb2438b60a43a3f65d87a46515efab1f92fa6a4d24aec9be2617d9cbf56e69",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\xilinx_ip\\data_ram\\data_ram.xci": "2fe1b0b2efcdcf0ff82a4d45d61c4b9219f8138aba4457c54d330be6e39e9210",
+    "cdp_ede_local-master\\mycpu_env\\soc_verify\\soc_bram\\rtl\\xilinx_ip\\inst_ram\\inst_ram.xci": "afa3465d1fa54e3c868b38584e9c862cee4635d1c6a62b80ceb137f52cdade47",
+    "config\\clock.tcl": "d37a7532f36a067ff093f6c47e96b0cc9600f2cffccee2d0a49650e4b88cb276",
+    "remote\\loongson_remote.xdc": "4a0f6ce6dcb49687fd33c16c89844835b44d000ffda77fbd9482349b77358574",
+    "remote\\loongson_remote_top.v": "73cb42b8bd63c0b9c5fee3f4c6cf4a9b500ac9f0f23232c88afab49bd86df0e5",
+    "remote\\remote2local.v": "eb164b1df2563afff819d01c822683c49d44a402ee7bdba3592f5011be6826b5"
+  }
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "image": "ex2_obj",
+    "mode": "stall",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "8f18e12bab453adf16c956db01398f4b117eb5afb541fb1b21579dfbde6235d7",
+      "data_ram.mif": "6a27150629e6a6b1f29e24fb13165dc6547521ab72bae842b268e5b9ffb85cbc",
+      "inst_ram.coe": "852859afb87af5a681b2b37efe7935f6647c5a762ac4dc8a609194304ffb95cb",
+      "data_ram.coe": "be5be1fea144da5bf0856d563a2ad1ca79be800aa0d9fa77a09308724bed76c6"
+    },
+    "functional_points": 20,
+    "compared_writebacks": 46534,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 22.917
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "test": "tests/tb_sync_ram.v",
+  "date": "2026-10-14",
+  "status": "PASS",
+  "tool": "WSL Ubuntu Icarus Verilog",
+  "checks": ["full-word write/read", "byte write enables", "disabled write has no effect", "disabled read holds output", "synchronous read-first"],
+  "return_code": 0,
+  "marker": "RAM_MODEL_PASS: full write, byte enables, enable gating, synchronous read-first"
+}

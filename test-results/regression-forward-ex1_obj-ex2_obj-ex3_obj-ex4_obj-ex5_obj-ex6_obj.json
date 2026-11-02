@@ -1,0 +1,92 @@
+[
+  {
+    "image": "ex1_obj",
+    "mode": "forward",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "3eded9e9c003e035a3179cf73b120e254201d8d33835baa1e11cb8102dd2d564",
+      "data_ram.mif": "a7526eb0d3df4caa4df727b88811f4c45d2def048ce3895ad18f1fc50b160991",
+      "inst_ram.coe": "c07f74e7b54aaa4a4e5e0bddf8f47dfc77acdab7214a01dddf8ed64e2bcf9a6a",
+      "data_ram.coe": "8f486c68260b8d4c3679cc0494081ec5ea5815319e81f071d6f7079689c84576"
+    },
+    "functional_points": 20,
+    "compared_writebacks": 46534,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 39.714
+  },
+  {
+    "image": "ex2_obj",
+    "mode": "forward",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "f6ccad013ddbee8afc81b695c2f443adffc8760ac2d20a0a7ec3ad3ec5871bd1",
+      "data_ram.mif": "54e1f555d80aaeeeac4552dbbdd05e67db5d70ac301df9a019afc9e90f64e92e",
+      "inst_ram.coe": "e55bb853cda395e82aa95f9baeda404c0b88ee990253abd0f2b6633810475b72",
+      "data_ram.coe": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2"
+    },
+    "functional_points": 20,
+    "compared_writebacks": 46534,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 23.935
+  },
+  {
+    "image": "ex3_obj",
+    "mode": "forward",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "f6ccad013ddbee8afc81b695c2f443adffc8760ac2d20a0a7ec3ad3ec5871bd1",
+      "data_ram.mif": "54e1f555d80aaeeeac4552dbbdd05e67db5d70ac301df9a019afc9e90f64e92e",
+      "inst_ram.coe": "e55bb853cda395e82aa95f9baeda404c0b88ee990253abd0f2b6633810475b72",
+      "data_ram.coe": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2"
+    },
+    "functional_points": 20,
+    "compared_writebacks": 46534,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 23.885
+  },
+  {
+    "image": "ex4_obj",
+    "mode": "forward",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "b9facd223aa01df3461ccac069d8a7329b1a68b0aa1674c9c45720a840ab94bc",
+      "data_ram.mif": "54e1f555d80aaeeeac4552dbbdd05e67db5d70ac301df9a019afc9e90f64e92e",
+      "inst_ram.coe": "305c8db250d935c461524f596edaa9ddced867e30b2c3364f1934a51228706e5",
+      "data_ram.coe": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2"
+    },
+    "functional_points": 29,
+    "compared_writebacks": 62377,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 30.655
+  },
+  {
+    "image": "ex5_obj",
+    "mode": "forward",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "e3205334030fa9b76b593cd0c862092b301cc3bf33ff96c0e6c11301972c09a5",
+      "data_ram.mif": "54e1f555d80aaeeeac4552dbbdd05e67db5d70ac301df9a019afc9e90f64e92e",
+      "inst_ram.coe": "72ea0a77a4d1e9c20228b6a6543314adc057f53d76813512d846c8fa21c2ddaf",
+      "data_ram.coe": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2"
+    },
+    "functional_points": 33,
+    "compared_writebacks": 71332,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 34.694
+  },
+  {
+    "image": "ex6_obj",
+    "mode": "forward",
+    "status": "PASS",
+    "image_sha256": {
+      "inst_ram.mif": "1a79cd448d66f7e9c15629777ca608dd321de7192f85b8e1cc494a19dc0ae88d",
+      "data_ram.mif": "54e1f555d80aaeeeac4552dbbdd05e67db5d70ac301df9a019afc9e90f64e92e",
+      "inst_ram.coe": "3b1a8c62ed17d2afdf633e492d2e99d04084d1e9088c3b5a8b8f728f4ada96b2",
+      "data_ram.coe": "8bc44e0d7c792df9aadf8965f33e95a3ca0f22abd57867712256fa2d3151caf2"
+    },
+    "functional_points": 39,
+    "compared_writebacks": 79750,
+    "reference": "gettrace/src/myCPU/SimpleLACoreWrapRAM.v (independent course reference)",
+    "elapsed_seconds": 37.949
+  }
+]
