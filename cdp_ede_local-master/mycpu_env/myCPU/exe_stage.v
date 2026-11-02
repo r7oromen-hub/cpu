@@ -74,8 +74,11 @@ alu u_alu(
 
 // Only the transfer edge may issue a memory operation. This prevents repeated
 // stores if a later extension adds downstream backpressure.
+// 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
 assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
                         (es_res_from_mem || es_mem_we);
+// 小端序：地址低两位选择字节通道；半字按自然对齐选择低/高两个通道。
+// 写数据复制到各通道，再由字节写使能决定真正写入哪些通道。
 wire [3:0] store_lanes = es_mem_size == `MEM_SIZE_BYTE ? (4'b0001 << es_alu_result[1:0]) :
                          es_mem_size == `MEM_SIZE_HALF ? (es_alu_result[1] ? 4'b1100 : 4'b0011) :
                                                         4'b1111;
@@ -85,6 +88,7 @@ assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = es_mem_size == `MEM_SIZE_BYTE ? {4{es_rkd_value[7:0]}} :
                          es_mem_size == `MEM_SIZE_HALF ? {2{es_rkd_value[15:0]}} :
                                                         es_rkd_value;
+// 向ID提供有效写回、目的寄存器和结果；附带结果是否尚不可用的信息。
 assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
                        es_res_from_mem, es_dest, es_alu_result};
 
