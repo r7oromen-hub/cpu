@@ -70,11 +70,13 @@ alu u_alu(
 
 // Only the transfer edge may issue a memory operation. This prevents repeated
 // stores if a later extension adds downstream backpressure.
+// 只有有效的load/store才访问数据RAM；写使能还受store条件限制。
 assign data_sram_en    = !reset && es_to_ms_valid && ms_allowin &&
                         (es_res_from_mem || es_mem_we);
 assign data_sram_we    = {4{data_sram_en && es_mem_we}};
 assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = es_rkd_value;
+// 向ID提供有效写回、目的寄存器和结果；附带结果是否尚不可用的信息。
 assign es_to_ds_bus = {es_valid && es_gr_we && es_dest != 5'd0,
                        es_res_from_mem, es_dest, es_alu_result};
 

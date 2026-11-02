@@ -32,7 +32,7 @@
   ],
   "bitstream": "build\\vivado-remote\\loongson.runs\\impl_1\\looongson_remote_top.bit",
   "bitstream_bytes": 4757847,
-  "bitstream_sha256": "f30216eb4e51b846ac7a3739ff693f142b60501193a37d2b35a0ee95191a256c",
+  "bitstream_sha256": "059e3705ae98731d4c2b0d41ec19c824d25a2104fa39f2328f980dba90c031b7",
   "input_sha256": {
     "build\\vivado-remote\\ip\\clk_pll\\clk_pll.xci": "6286a8a82b8709b91fa10fa6d57ca075d7d4db578c51f648192bce77a6bc99dc",
     "build\\vivado-remote\\ip\\data_ram\\data_ram.xci": "95056558eedde430a4ac6c952edc2994330c22339743527a5eabe0a80b292d25",
