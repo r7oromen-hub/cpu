@@ -1,7 +1,7 @@
 # LoongArch 计组实验一至五
 
-实验一至五采用逐步继承的五个 Git 分支。本目录是最终累计版本
-`branches/experiment-5`，包含前五个实验的全部 CPU 功能。
+实验一至五采用逐步继承的五个 Git 分支。`experiment-5` 是最终累计版本，
+包含前五个实验的全部 CPU 功能；仓库的 `main` 展示这一版本。
 2026-10-14 前递模式 `ex1_obj` 至 `ex7_obj` 全部完成独立参考核写回对拍；
 实验五纯阻塞模式 `ex7_obj` 也通过。
 
@@ -19,18 +19,18 @@
 | experiment-4 | 字节/半字 load 和 store | ex6_obj | [实验四](docs/experiment-4.md) |
 | experiment-5 | 乘法和迭代除法 | ex7_obj | [实验五](docs/experiment-5.md) |
 
-五个分支已分别检出到 `计组课设la版/branches/experiment-1` 至
-`experiment-5` 的独立 worktree。直接打开所需目录，不必在当前目录执行
-`git switch`；Git 通常也不允许切换到已经被另一个 worktree 使用的分支。
-原 Git 主工作目录 `计组课设la版/计组课设la版` 保留 baseline，不能把其中旧代码
-当作最终累计实现。实验二及以后保留 `--mode stall` 与 `--mode forward` 两种测试方式。
+克隆后可用 `git switch experiment-3` 等命令查看对应实验；如需同时打开多个
+实验，可使用 `git worktree`。实验二及以后保留 `--mode stall` 与
+`--mode forward` 两种测试方式。
 
 ## 打开和测试最终版本
 
-Vivado 直接打开本目录的 `build/vivado-remote/loongson.xpr`。
+Vivado 生成目录不在仓库中。先运行一次回归选定镜像，再使用
+`vivado -mode batch -source scripts/create_vivado.tcl -tclargs remote` 创建工程，
+之后打开 `build/vivado-remote/loongson.xpr`。详细步骤见 [验证说明](docs/verification.md)。
 CPU 源码在 `cdp_ede_local-master/mycpu_env/myCPU/`，展开 Sources 中的
 `looongson_remote_top → soc_lite → cpu` 即可找到五级流水模块。
-工程关闭后再打开 `.xpr`，不用重新运行创建 Tcl。
+工程创建后可直接重新打开 `.xpr`。
 
 在本目录打开 PowerShell 后运行：
 
@@ -53,6 +53,10 @@ python scripts/run_regression.py --image ex7_obj --mode stall
 - 远程 FPGA 适配：`remote/`
 - 实验记录：`docs/`
 
-当前五个分支的 CPU-only Vivado 2018.3 综合均通过；远程板级工程正在统一完成
-最终实现、时序及 bitstream 检查，最终结果见 [交付总览](docs/overview.md)。
-实际 FPGA 上板和校内线上评测未执行。Vivado 生成目录和大型仿真输出不提交。
+五个分支 CPU-only 综合及远程板级综合、布线、时序、bitstream 均已验收通过。
+实验一至三 CPU 为 50 MHz，实验四、五实际 CPU 为 25 MHz（原 50 MHz 时序
+失败已记录）；输入保持 50 MHz，timer 保持 100 MHz。实验五保留 12 条 DSP
+流水优化建议，无 Error/Critical Warning。详情见 [交付总览](docs/overview.md)。
+2026-11-01 校内平台使用本地位流评测 exp1 至 exp7，均为 100 分；平台最终
+提交版本未设置。详见 [线上评测记录](docs/online-evaluation.md)。Vivado 生成目录、
+位流和大型仿真输出不提交；早期验收报告中的“线上评测未执行”反映当时状态。

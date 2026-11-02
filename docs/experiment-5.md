@@ -4,7 +4,7 @@ Git 分支为 `experiment-5`，工作目录是 `计组课设la版/branches/exper
 
 ## 独立除法器
 
-新增 `cdp_ede_local-master/mycpu_env/myCPU/iterative_divider.v`，使用恢复余数迭代算法。每个周期执行一次移位、无符号比较和减法，共 32 次迭代；可综合 RTL 没有 `/` 或 `%` 运算符。签名输入先取二补码绝对值，计算后恢复商和余数符号。有符号商向零截断，余数符号与被除数相同。`INT_MIN/-1` 商按 32 位二补码回绕。
+新增 `cdp_ede_local-master/mycpu_env/myCPU/iterative_divider.v`，使用恢复余数迭代算法。每个周期执行一次移位、无符号比较和减法，共 32 次迭代；可综合 RTL 没有 `/` 或 `%` 运算符。有符号输入先取二补码绝对值，计算后恢复商和余数符号。有符号商向零截断，余数符号与被除数相同。`INT_MIN/-1` 商按 32 位二补码回绕。
 
 接口：空闲时 `start=1` 接收 `signed_mode/dividend/divisor`；运行期间 `busy=1`，再次 `start` 被忽略；完成后 `busy=0,done=1`，商和余数保持，直到下次接受 `start` 或复位。除数为零定义商 `0xffffffff`、余数等于被除数，不产生异常。普通非零除数在接受请求之后 32 个时钟沿完成；流水线还需要一次开始握手。
 
@@ -86,4 +86,31 @@ python3 scripts/run_regression.py --image ex7_obj --mode stall
 
 摘要文件：`test-results/regression-forward-ex1_obj-ex2_obj-ex3_obj-ex4_obj-ex5_obj-ex6_obj-ex7_obj.json`，包含各镜像 SHA-256、耗时和独立参考核说明。纯阻塞模式 ex7 全镜像也已 PASS：46/46 功能点，86,846/86,846 启用写回记录；对应 `test-results/regression-stall-ex7_obj.json`。
 
-Vivado 综合/实现由主代理统一执行并补充结果；FPGA 上板和校内线上评测未执行，不标为通过。
+## Vivado 验收与问题记录
+
+2026-10-14 已完成 Vivado 2018.3 CPU-only 综合，以及 `xc7a200tfbg676-1`
+远程 BRAM SoC 顶层综合、布局布线和 bitstream 生成。共用乘法器映射为 4 个
+DSP48E1；除法器保持迭代逻辑，不使用除法 IP 或 RTL `/`、`%`。
+
+首次实际 CPU 50 MHz 布线 WNS=-2.007 ns，未通过建立时间验收。关键路径由
+EXE 操作数寄存器经过 DSP 组合乘法、ID 分支判断到指令 RAM 使能。最终继承
+实验四的 `config/clock.tcl`，CPU 实际 PLL 输出为 25 MHz（40 ns），板级
+输入仍 50 MHz，timer 仍 100 MHz。没有用 false path 或虚假周期掩盖失败，
+也没有改变乘法指令语义；CPU 周期频率降低是明确的性能取舍。
+
+最终 WNS=5.313 ns、WHS=0.091 ns、WPWS=4.500 ns，TNS/THS/TPWS 全为 0。
+DRC 无 Error/Critical Warning，但保留 12 条建议性 Warning：DPIP-1、DPOP-1、
+DPOP-2 各 4 条，建议启用 DSP 输入/乘法/输出流水寄存器。当前单周期组合乘法
+刻意不启用这些内部寄存器，且真实 25 MHz 时序已通过，因此只接受这三个规则
+的 Warning；其他 DRC 违规或更高等级仍拒绝。未关闭检查、修改 severity 或
+waive 规则，完整警告仍保存在报告与摘要中，不能描述为“DRC 零违规”。
+
+当前镜像为 ex7，两 RAM 生成的 MIF 与当前 COE 逐字一致。证据：
+[验收摘要](../test-results/vivado-remote/summary.json)、
+[最终时序及实际时钟](../test-results/vivado-remote/timing-summary.txt)、
+[包含 12 条 DSP 建议的完整 DRC](../test-results/vivado-remote/drc.txt)、
+[综合资源](../test-results/vivado-remote/utilization.txt)、
+[CPU-only 综合资源](../test-results/cpu-synthesis/utilization.rpt)。
+工程在 `build/vivado-remote/loongson.xpr`，输出在
+`build/vivado-remote/loongson.runs/impl_1/looongson_remote_top.bit`。
+FPGA 实物上板和校内线上评测未执行，不标为通过。

@@ -24,10 +24,12 @@ reg [5:0]  iteration;
 reg        quotient_negative;
 reg        remainder_negative;
 
+// 有符号除法先求操作数的无符号幅值；记录符号，在迭代完成后恢复。
 wire dividend_negative = signed_mode && dividend[31];
 wire divisor_negative  = signed_mode && divisor[31];
 wire [31:0] dividend_abs = dividend_negative ? (~dividend + 32'd1) : dividend;
 wire [31:0] incoming_divisor_abs = divisor_negative ? (~divisor + 32'd1) : divisor;
+// 每周期移入被除数的一位，比较余数与除数；够减则减去除数并写入一位商1。
 wire [32:0] shifted_remainder = {remainder_work[31:0], quotient_work[31]};
 wire subtract_divisor = shifted_remainder >= {1'b0, divisor_abs};
 wire [32:0] next_remainder = subtract_divisor
@@ -40,6 +42,8 @@ wire [31:0] signed_remainder = remainder_negative
                               ? (~next_remainder[31:0] + 32'd1)
                               : next_remainder[31:0];
 
+// 空闲时接受start；普通非零除数迭代32次，done和结果保持至下一次请求或复位。
+// 本实现除数为零时直接给商全1、余数为被除数，不触发异常。
 always @(posedge clk) begin
     if (reset) begin
         busy               <= 1'b0;

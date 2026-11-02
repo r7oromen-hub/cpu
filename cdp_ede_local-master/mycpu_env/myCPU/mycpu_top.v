@@ -1,6 +1,8 @@
 `include "mycpu_head.v"
 `timescale 1ns / 1ps
 
+// 五级流水总入口：IF取指、ID译码、EXE执行、MEM访存、WB写回。
+// 各级用 valid 表示内容有效，用 allowin 表示本级可以接收新内容。
 module mycpu_top #(
 `ifdef STALL_ONLY
     parameter FORWARDING = 0

@@ -55,12 +55,15 @@ always @(posedge clk) begin
 end
 
 // Little endian: address bits 1:0 select byte position in the returned word.
+// 将目标字节或半字移至低位，再按所选数据的符号位做符号扩展或零扩展。
+// 完成扩展后的load结果同时用于WB写回和MEM到ID的前递。
 wire [31:0] shifted_load = data_sram_rdata >> {ms_alu_result[1:0], 3'b000};
 wire [31:0] load_result = ms_mem_size == `MEM_SIZE_BYTE ?
                          {{24{!ms_load_unsigned && shifted_load[7]}}, shifted_load[7:0]} :
                          ms_mem_size == `MEM_SIZE_HALF ?
                          {{16{!ms_load_unsigned && shifted_load[15]}}, shifted_load[15:0]} :
                          data_sram_rdata;
+// load选择RAM返回的数据，其余写回指令选择EXE计算结果。
 assign ms_final_result = ms_res_from_mem ? load_result
                                          : ms_alu_result;
 assign ms_to_ds_bus = {ms_valid && ms_gr_we && ms_dest != 5'd0,

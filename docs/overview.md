@@ -39,6 +39,11 @@
 
 只查看某实验自己的实现时，使用对应 worktree；查看全部功能时使用 experiment-5。
 
+2026 PPT 第 13 页使用另一种分组：PPT“实验一”包含指导书第一、二章
+（ex1/ex2/ex3）；PPT“实验二”包含第三、四章（ex4/ex5/ex6）；
+PPT“实验三”是第五章（ex7）。本次五个分支按指导书章节编号；在线平台若按
+PPT 分组显示，须用这组换算，不能机械地把 branch 编号当作线上分组编号。
+
 ## 如何打开工程和源码
 
 以实验五为例，Vivado 中 `File → Project → Open` 选择：
@@ -123,15 +128,31 @@ trace 缺失/多余或任意 PC/寄存器号/数据不一致都会失败，不�
 所有五个分支已完成 CPU-only Vivado 2018.3 综合。它验证 CPU RTL 可综合，
 不等同于完整板级实现、最终时序或实际上板。
 
-| 分支 | CPU-only 综合 | 远程板级实现 / 时序 / bitstream 最终验收 |
-| --- | --- | --- |
-| experiment-1 | PASS | 已生成过 bitstream；修正未用时钟 XDC 后重验中 |
-| experiment-2 | PASS | 已生成过 bitstream；修正未用时钟 XDC 后重验中 |
-| experiment-3 | PASS | 构建中，等待最终结果 |
-| experiment-4 | PASS | 构建中，等待最终结果 |
-| experiment-5 | PASS | 构建中，等待最终结果 |
+| 分支 | CPU-only 综合 | CPU MHz | WNS / WHS (ns) | 远程实现及 bitstream | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| experiment-1 | PASS | 50 | 1.706 / 0.059 | PASS | [摘要](../../experiment-1/test-results/vivado-remote/summary.json) |
+| experiment-2 | PASS | 50 | 0.195 / 0.073 | PASS | [摘要](../../experiment-2/test-results/vivado-remote/summary.json) |
+| experiment-3 | PASS | 50 | 0.172 / 0.112 | PASS | [摘要](../../experiment-3/test-results/vivado-remote/summary.json) |
+| experiment-4 | PASS | 25 | 4.622 / 0.119 | PASS | [摘要](../../experiment-4/test-results/vivado-remote/summary.json) |
+| experiment-5 | PASS | 25 | 5.313 / 0.091 | PASS（保留 DSP 建议） | [摘要](../test-results/vivado-remote/summary.json) |
 
-此表是整理交付时的状态，主代理在构建完成后填写实际结果、时序指标和报告位置。
+目标均为 `xc7a200tfbg676-1`、Vivado 2018.3。所有分支建立/保持/脉宽时序
+通过（WPWS=4.500 ns，TNS/THS/TPWS=0），bitstream 存在且有成功生成标记，
+输入文件不晚于 bitstream；生成 RAM MIF 与选定 COE 全字匹配。当前镜像分别为
+ex1、ex3（与 ex2 同内容）、ex5、ex6、ex7，摘要记录镜像及 bitstream SHA-256。
+完整 timing/utilization/DRC 报告在各分支 `test-results/vivado-remote/`；
+CPU-only 报告在 `test-results/cpu-synthesis/`。
+
+实验一至四 DRC 违规为 0。实验五无 Error/Critical Warning，但有 12 条 DSP
+流水优化建议（DPIP-1/DPOP-1/DPOP-2 各 4 条）；单周期组合乘法刻意不使用
+DSP 内部流水寄存器，已在实际频率下通过时序。仅这三类 Warning 经核对接受，
+其他 DRC 违规仍失败，未关闭、降级或 waive 检查，完整警告没有隐藏。
+
+实验四、五初次在实际 50 MHz 下布线分别 WNS=-1.860/-2.007 ns，不能算通过。
+最终 `config/clock.tcl` 将实际 CPU PLL 输出改为 25 MHz；板级输入仍 50 MHz、
+timer 仍 100 MHz，约束反映真实 40 ns 周期，没有 false path 或虚假放宽。
+代价是每秒 CPU 周期数减半；不是对 50 MHz 性能达标的声明。
+
 实际 FPGA 上板和校内平台线上评测未执行，不标 PASS。线上提交需要教师提供的
 平台入口和账号，再上传所选镜像对应的最终 `.bit`。
 
@@ -148,7 +169,14 @@ trace 缺失/多余或任意 PC/寄存器号/数据不一致都会失败，不�
 - `CONFIG.Coe_File` 若为相对路径，必须相对 XCI 所在目录解析，不能用当前
   工作目录检查；`lab_resolve_ip_coe` 统一解析并确认 Load_Init_File 已启用。
 - 远程未使用的 11 MHz 和手动时钟网络被综合优化，原 XDC 对不存在网络设置
-  routing exception 会报警；为这些网络加存在性判断后再设置约束。
+  routing exception 会报警。尝试的 `if` 在 Vivado 2018.3 XDC 中也不被支持；
+  最终删除这两条不需要的例外，保留输入时钟、所有引脚和真实使用的 reset 约束。
+- 实际 50 MHz 板级时序失败与 CPU-only 综合通过不能混淆；实验四、五重新
+  配置真实 25 MHz CPU PLL 并重新布局布线，记录性能取舍与最终正 slack。
+- 相同 COE 路径也可能被换成新镜像。新增内容快照与完整 MIF 对比，只刷新
+  真正变化的 RAM/PLL 及对应 OOC run，避免旧 IP 输出被误复用。
+- 完整工程与 collector 检查 DRC、setup/hold/pulse-width、实际时钟、镜像内容
+  和 bitstream 完成状态；测试覆盖这些门槛的故意失败输入。
 
 功能范围及继承限制见各实验文档；尤其任意 warm reset 的首个时钟沿可能仍有
 旧 WB 写回，当前验收不声称通用寄存器堆复位清零。
